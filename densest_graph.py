@@ -34,9 +34,15 @@ class Graph():
     def __init__(self, data = {}):
         for k,v in data.items():
             # self.edges[k] = list(map(str, v))
+
             # interesting little tidbit: the whole thing breaks when we try to add self edges
             # this raises the question: to consider a graph to be dense, shall we only consider the outgoing edges,
             # i.e. ignore the self-referencing ones? how about duplicated edges?
+            # e.g. let G1 be a graph with 5050 edges between two nodes 
+            # and G2 a graph with 100 inter-connected nodes
+            # thus density(G1) = 5050/2, density(G2) = 5050/100
+            # is G1 denser than G2 because of the amount of edges between the two nodes?
+            # or should G2 be denser since it has more nodes densely packed?
             self.edges[k] = list(filter(lambda x: x != k, map(str, v)))
 
 
@@ -80,11 +86,19 @@ class Graph():
         '''
         for n in self.edges[v]:
             # removing v from the edges of each n
-            self.edges[n].remove( v )
+            degree_n_v = len([x for x in self.edges[n] if x == v])
+            self.edges[n] = [x for x in self.edges[n] if x != v]
+            
+            ## Alternatives:
+            ## functional approach, but actually takes longer
+            # self.edges[n] = list(filter(lambda x: x != v, self.edges[n]))
+            ## faster approach, but only removes one occurence of v in self.edges[n] 
+            ## so doesn't really help if we have multiple edges between two nodes
+            # self.edges[n].remove(v)
 
             # updating their position on the degrees list
             self.degrees[ self.nodes[n] ].remove( n )
-            self.nodes[n] -= 1
+            self.nodes[n] -= degree_n_v
             self.degrees[ self.nodes[n] ].append( n )
         
         # removing their references from the dicts
@@ -161,9 +175,7 @@ def densest_subgraph(graph):
 
 if __name__ == "__main__":
     ### READING INPUT FILE
-    args = sys.argv
-
-    if len(args) != 2:
+    if len(sys.argv) != 2:
         raise Exception(f"{__file__} requires exactly 1 argument (input file)")
     
     path = os.getcwd()
