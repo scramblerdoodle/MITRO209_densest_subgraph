@@ -1,4 +1,3 @@
-### DENSEST GRAPH ALGO
 ## GOAL: O(E + V)
 import csv
 import os, sys
@@ -72,32 +71,30 @@ class Graph():
 
 
 # algorithm itself:
-def densest_subgraph(G, copy=False):
-    H = G.copy()
+def densest_subgraph(G, target = -1):
+    G = G.copy()
+    max_den = 0
 
-    while G.edges: # i.e. while G isn't empty
+    # repeat while G isn't empty and current density is not our target density
+    while G.edges and max_den != target:
 
         # find v in G with minimum degree d_G
         min_deg, min_nodes = G.minimum_degree()
         v = min_nodes.pop()
-        # print("min deg:", min_deg, "v:", v)
         
         G.remove_node(v) # remove v and its edges from G
-        G.density = G.avg_degree_density()
-        print(f"Density: {G.density}")
-        if G.density > H.density:
-            ### TODO: the deepcopy is what's destroying the performance
-            # it's actually linear, O(V + E), both spatial and algorithmically, BUT it's in a O(V + E) loop so... yeah
-            if copy: 
-                H = G.copy()
-            else:
-                # this is sort of a workaround but it's got a few issues - on the twitch db it misses out 3 nodes for some reason
-                # I have a feeling it's because it's not really keeping track of literally every step taken by the algo (removing nodes from G)
-                # so there may be a few nodes (namely when the density decreases) which aren't really removed from H and it gets confused
-                H.remove_node(v)
-                H.density = H.avg_degree_density()
+        G.density = G.avg_degree_density() # updating the density
+        
+        if G.density > max_den:
+            max_den = G.density
 
-    return H
+            ### TODO: old solution, however the deepcopy at nearly every loop destroys the performance
+            # H = G.copy()
+
+    if max_den == target:
+        return G
+
+    return max_den
 
 
 
@@ -109,7 +106,7 @@ def densest_subgraph(G, copy=False):
 # dunno if it's helpful but it could do something ?
 
 
-### NOTE: twitch final density: 23.857142857142858
+### NOTE: twitch final density: 11.928571428571429
 
 if __name__ == "__main__":
     ### READING INPUT FILE
@@ -131,22 +128,22 @@ if __name__ == "__main__":
             data[n].append(t)
             data[t].append(n)
 
+    print("Arranging data...")
+    graph = Graph(data)
 
     import time
-    print("Looking for densest subgraph (w/o copy)...")    
+    print("Looking for densest subgraph...")    
     start = time.time()
-    H = densest_subgraph(Graph(data), copy=False)
+
+    # looking for the max density by running the algorithm
+    max_den = densest_subgraph(graph)
+    # then running it again until we've found this desired density
+    H = densest_subgraph(graph, target=max_den)
+
     end = time.time()
 
-    print("\nLooking for densest subgraph (w/ copy)...")
-    start2 = time.time()
-    H2 = densest_subgraph(Graph(data), copy=True)
-    end2 = time.time()
+    print("Elapsed time:", end - start)
 
-    # print(H.edges)
-    # print(H.nodes)
-    print("Elapsed time w/ copy:", end - start)
-    print("Elapsed time w/o copy:", end2 - start2)
 
 
     
