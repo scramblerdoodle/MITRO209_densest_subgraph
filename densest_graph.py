@@ -1,6 +1,6 @@
 ### DENSEST GRAPH ALGO
 ## GOAL: O(E + V)
-import json
+import csv
 import os, sys
 from collections import defaultdict
 from copy import deepcopy
@@ -19,7 +19,6 @@ class Graph():
             self.edges[k] = list(filter(lambda x: x != k, map(str, v)))
 
 
-
         ### writing to degrees (O(V))
         for v, e in data.items():
             d = len(e)
@@ -27,6 +26,7 @@ class Graph():
             self.nodes[v] = d
 
     def copy(self):
+        # This might have a really large complexity idk
         H = Graph()
         H.edges     = deepcopy(self.edges)
         H.nodes     = deepcopy(self.nodes)
@@ -35,66 +35,35 @@ class Graph():
         return H
 
 
-    # aux functions
     def minimum_degree(self):
-        # go through all of the nodes and find the smallest one ? - linear, O(E)
-        # sort them each time we remove shit from G ? - depends on the algo but prob worse than linear
-
-        # TIP: for each degree d in G, keep a list of nodes with degree d
-        # e.g. [0, [8,9,10], [7], [], [1,3,6], [2,4,5]]
-        #       0      1      2    3     4        5
-        # and after each removal of a node, gotta go -1 on each node connected to it
-        # ah fuck this isn't quite as straightforward as I had originally thought
-        # something else we could do is save the node's degree as an attr, making it O(1) to find it in the list
-
         return min(filter(lambda x: x[1], self.degrees.items()))
 
     def remove_node(self, v):
-        nodes = list(map(str, self.edges[v]))
-        print('v:', v, 'nodes:', nodes)
+        # DEBUG: print('v:', v, 'edges:', self.edges[v])
 
-        for n in nodes:
-            # print("Trying to remove",v,"from",n)
-            print(f"Edges of {n}: {self.edges[n]}")
+        for n in self.edges[v]:
             # removing v from the edges of each n
-            # try:
             self.edges[n].remove( v )
-            # except ValueError:
-            #     pass
-                # print(f"Apparently {n} not connected to {v}")
-                # print(f"{n} neighbours: {sorted(self.edges[n])}")
-            # except KeyError:
-            #     pass
-                # print(f"{n} is already not in the graph")
-        
+
             # updating their position on the degrees list
-            # try:
             self.degrees[ self.nodes[n] ].remove( n )
             self.nodes[n] -= 1
             self.degrees[ self.nodes[n] ].append( n )
-            # except ValueError:
-                # pass
-                # print(f"{n} not in degrees[{self.nodes[n]}]")
-            # except KeyError:
-                # pass
-                # print(f"{n} is already not in nodes")
-
-        # possibly already removed from the degrees list due to the .pop() shit
-        # self.degrees[ self.nodes[v] ].remove( v )
         
+        # removing their references from the dicts
         del self.edges[v]
         del self.nodes[v]
 
 
-
-
     def avg_degree_density(self):
         # number of edges / number of nodes
-
-        n_nodes = len(self.edges)
-        n_edges = sum( map( len, self.edges.values() ) )
+        ### TODO IDEAS FOR OPTIMISATION:
+        # since we're removing edges and nodes one-by-one,
+        # we could keep n_nodes and n_edges as attributes for the class itself and save ourselves some complexity
+        n_nodes = len(self.edges) # O(V)
+        n_edges = sum( map( len, self.edges.values() ) ) # O(E)
         
-        return n_edges / n_nodes if n_nodes else 0
+        return n_edges / n_nodes if n_nodes else 0 # sanity check
 
 
 # algorithm itself:
@@ -106,10 +75,12 @@ def densest_subgraph(G):
         # find v in G with minimum degree d_G
         min_deg, min_nodes = G.minimum_degree()
         v = min_nodes.pop()
-        print("min deg:", min_deg, "v:", v)
+        # print("min deg:", min_deg, "v:", v)
         
         G.remove_node(v) # remove v and its edges from G
+        ### TODO: THIS IS WHAT'S FUCKING UP THE PERFORMANCE
         if G.avg_degree_density() > H.avg_degree_density():
+            # print(f"Density: {G.avg_degree_density()}")
             H = G.copy()
 
     return H
@@ -124,6 +95,8 @@ def densest_subgraph(G):
 # dunno if it's helpful but it could do something ?
 
 
+### NOTE: twitch final density: 23.857142857142858
+
 if __name__ == "__main__":
     ### READING INPUT FILE (json)
     args = sys.argv
@@ -135,14 +108,28 @@ if __name__ == "__main__":
     path = os.path.join(path, sys.argv[1])
 
 
+    print("Reading file...")
+    # reading complexity: O(number of lines)
     with open(path) as f:
-        data = json.loads(f.read())
+        csvfile = csv.reader(f)
+        data = defaultdict(list)
+        for n, t in csvfile:
+            data[n].append(t)
+            data[t].append(n)
     
+    print("Arranging data...")
     graph = Graph(data)
     
+    print("Looking for densest subgraph...")
+    
+    import time
+    start = time.time()
     H = densest_subgraph(graph)
+    end = time.time()
+
     print(H.edges)
     print(H.nodes)
+    print("Elapsed time:", end - start)
 
 
     
