@@ -30,6 +30,9 @@ class Graph():
     nodes = {}
     degrees = defaultdict(list)
     density = float(0)
+
+    n_edges = 0
+    n_nodes = 0
     
     def __init__(self, data = {}):
         for k,v in data.items():
@@ -51,6 +54,12 @@ class Graph():
             d = len(e)
             self.degrees[d].append(v)
             self.nodes[v] = d
+
+        # NOTE: since we're building an undirected graph and duplicating every edge,
+        #       we must divide n_edges by 2 to take that into account
+        
+        self.n_nodes = len( self.nodes ) # O(V)
+        self.n_edges = sum( map( len, self.edges.values() ) ) / 2 # O(E)
 
         self.density = self.avg_degree_density()
 
@@ -99,9 +108,11 @@ class Graph():
             # updating their position on the degrees list
             self.degrees[ self.nodes[n] ].remove( n )
             self.nodes[n] -= degree_n_v
+            self.n_edges  -= degree_n_v
             self.degrees[ self.nodes[n] ].append( n )
         
         # removing their references from the dicts
+        self.n_nodes -= 1
         del self.edges[v]
         del self.nodes[v]
 
@@ -111,13 +122,7 @@ class Graph():
             Calculates the average degree density of the graph, and saves it on the density attribute
             where average degree density = (number of edges) / (number of nodes)
         '''
-        # NOTE: since we're building an undirected graph and duplicating every edge,
-        #       we must divide n_edges by 2 to take that into account
-
-        n_edges = sum( map( len, self.edges.values() ) )/2 # O(E)
-        n_nodes = len(self.edges) # O(V)        
-
-        self.density = n_edges / n_nodes if n_nodes else 0 # sanity check
+        self.density = self.n_edges / self.n_nodes if self.n_nodes else 0 # sanity check
 
 
 # algorithm itself:
@@ -146,6 +151,7 @@ def densest_subgraph(graph):
         
         if G.density > max_den:
             max_den = G.density
+            # print("Density:",max_den)
 
             ### NOTE: this was the old solution, however the deepcopy at nearly every loop destroys the performance
             # H = G.copy()
@@ -171,8 +177,6 @@ def densest_subgraph(graph):
 # dunno if it's helpful but it could do something ?
 
 
-### NOTE: twitch final density: 11.928571428571429
-
 if __name__ == "__main__":
     ### READING INPUT FILE
     if len(sys.argv) != 2:
@@ -185,7 +189,7 @@ if __name__ == "__main__":
     print("Reading file...")
     # reading complexity: O(number of lines)
     with open(path) as f:
-        csvfile = csv.reader(f)
+        csvfile = csv.reader(f, delimiter=',')
         data = defaultdict(list)
         for n, t in csvfile:
             data[n].append(t)
