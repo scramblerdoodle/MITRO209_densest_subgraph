@@ -5,10 +5,31 @@ from collections import defaultdict
 from copy import deepcopy
 
 class Graph():
-    degrees = defaultdict(list)
+    '''
+        Graph object
+        inputs:
+            data: json-like dict representing the nodes and edges
+        
+        Let's take the following simple graph as an example:
+                            (A) - (B) - (C)
+
+            edges: (dict of lists) contains every node and its edges, it's also the expected input
+                e.g.    {A: [B], B:[A,C], C:[B]}
+
+            degrees: (dict of lists) for every degree d in the graph has a list containing the ids of every node with such degree
+                e.g.    {1: [A,C], 2:[B]}
+                        means nodes A and C have degree 1, and node B has degree 2
+
+            nodes: (dict of ints) keeps track of the degree of each node, essentially the dual of degrees
+                e.g.    {A: 1, B: 2, C: 1}
+
+            density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
+                e.g.    2 edges and 3 nodes => density = 2/3
+    '''
     edges = {}
     nodes = {}
-    density = 0
+    degrees = defaultdict(list)
+    density = float(0)
     
     def __init__(self, data = {}):
         for k,v in data.items():
@@ -28,7 +49,12 @@ class Graph():
         self.density = self.avg_degree_density()
 
     def copy(self):
-        # This technically has linear complexity O(V + E) but in the huge while loop for densest_subgraph it becomes quadratic
+        '''
+            Runs a deepcopy in each attribute of the graph and returns a new one
+            (avoids issues when messing around with memory addresses)
+
+            WARNING: has linear complexity, can become quite dangerous if ran in a loop
+        '''
         H = Graph()
         H.edges     = deepcopy(self.edges)
         H.nodes     = deepcopy(self.nodes)
@@ -39,11 +65,19 @@ class Graph():
 
 
     def minimum_degree(self):
+        '''
+            Returns a tuple of the minimum degree and the nodes corresponding to such degree,
+            i.e. (min_deg, min_nodes), where min_deg is an int, and min_nodes a list of node ids
+        '''
+        # We have to filter out the empty entries in the degrees list
+        # otherwise we could return an empty list
         return min(filter(lambda x: x[1], self.degrees.items()))
 
     def remove_node(self, v):
-        # print('v:', v, 'edges:', self.edges[v])
-
+        '''
+            Removes a node v from the graph, i.e. the node itself and its edges
+            by updating the edges, degrees and nodes to reflect on such changes
+        '''
         for n in self.edges[v]:
             # removing v from the edges of each n
             self.edges[n].remove( v )
@@ -59,19 +93,24 @@ class Graph():
 
 
     def avg_degree_density(self):
-        # number of edges / number of nodes
-        ### TODO IDEAS FOR OPTIMISATION:
-        # since we're removing edges and nodes one-by-one,
-        # we could keep n_nodes and n_edges as attributes for the class itself and save ourselves some complexity
-        n_nodes = len(self.edges) # O(V)
+        '''
+            Calculates the average degree density of the graph, and saves it on the density attribute
+            where average degree density = (number of edges) / (number of nodes)
+        '''
+        # NOTE: since we're building an undirected graph and duplicating every edge,
+        #       we must divide n_edges by 2 to take that into account
+
         n_edges = sum( map( len, self.edges.values() ) )/2 # O(E)
-        # gotta divide n_edges by 2 to account for the two-sided edges we create when reading the graph
-        
-        return n_edges / n_nodes if n_nodes else 0 # sanity check
+        n_nodes = len(self.edges) # O(V)        
+
+        self.density = n_edges / n_nodes if n_nodes else 0 # sanity check
 
 
 # algorithm itself:
 def densest_subgraph(G, target = -1):
+    '''
+        Densest Subgraph Algorithm
+    '''
     G = G.copy()
     max_den = 0
 
@@ -83,7 +122,7 @@ def densest_subgraph(G, target = -1):
         v = min_nodes.pop()
         
         G.remove_node(v) # remove v and its edges from G
-        G.density = G.avg_degree_density() # updating the density
+        G.avg_degree_density() # updating the density
         
         if G.density > max_den:
             max_den = G.density
