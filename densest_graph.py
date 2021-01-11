@@ -12,7 +12,12 @@ class Graph():
     
     def __init__(self, data = {}):
         for k,v in data.items():
-            self.edges[k] = list(map(str, v))
+            # self.edges[k] = list(map(str, v))
+            # interesting little tidbit: the whole thing breaks when we try to add self edges
+            # this raises the question: to consider a graph to be dense, shall we only consider the outgoing edges,
+            # i.e. ignore the self-referencing ones?
+            self.edges[k] = list(filter(lambda x: x != k, map(str, v)))
+
 
 
         ### writing to degrees (O(V))
