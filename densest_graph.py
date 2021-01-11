@@ -3,6 +3,7 @@
 import json
 import os, sys
 from collections import defaultdict
+from copy import deepcopy
 
 class Graph():
     degrees = defaultdict(list)
@@ -22,9 +23,9 @@ class Graph():
 
     def copy(self):
         H = Graph()
-        H.edges     = self.edges.copy()
-        H.nodes     = self.nodes.copy()
-        H.degrees   = self.degrees.copy()
+        H.edges     = deepcopy(self.edges)
+        H.nodes     = deepcopy(self.nodes)
+        H.degrees   = deepcopy(self.degrees)
 
         return H
 
