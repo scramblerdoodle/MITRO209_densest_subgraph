@@ -107,15 +107,21 @@ class Graph():
 
 
 # algorithm itself:
-def densest_subgraph(G, target = -1):
+def densest_subgraph(graph):
     '''
         Densest Subgraph Algorithm
+        Essentially has two parts:
+            First scan the graph to calculate its max density
+            Then repeat the algorithm until we've achieved the max density
+
+        Best case complexity:   O(V + E),       linear
+        Worst case complexity:  O(2*(V + E)),   which is still linear
     '''
-    G = G.copy()
+    G = graph.copy()
     max_den = 0
 
-    # repeat while G isn't empty and current density is not our target density
-    while G.edges and max_den != target:
+    # repeat while G isn't empty
+    while G.edges:
 
         # find v in G with minimum degree d_G
         min_deg, min_nodes = G.minimum_degree()
@@ -127,14 +133,20 @@ def densest_subgraph(G, target = -1):
         if G.density > max_den:
             max_den = G.density
 
-            ### TODO: old solution, however the deepcopy at nearly every loop destroys the performance
+            ### NOTE: this was the old solution, however the deepcopy at nearly every loop destroys the performance
             # H = G.copy()
 
-    if max_den == target:
-        return G
+    G = graph.copy()
 
-    return max_den
+    # repeat while current density is not the max density (and while G is not empty)
+    while G.density != max_den and G.edges:
+        _, min_nodes = G.minimum_degree()
+        v = min_nodes.pop()
 
+        G.remove_node(v)
+        G.avg_degree_density()
+
+    return G
 
 
 
@@ -174,10 +186,7 @@ if __name__ == "__main__":
     print("Looking for densest subgraph...")    
     start = time.time()
 
-    # looking for the max density by running the algorithm
-    max_den = densest_subgraph(graph)
-    # then running it again until we've found this desired density
-    H = densest_subgraph(graph, target=max_den)
+    H = densest_subgraph(graph)
 
     end = time.time()
 
