@@ -1,6 +1,7 @@
 ## GOAL: O(E + V)
 import csv
 import os, sys
+import time
 from collections import defaultdict
 from copy import deepcopy
 
@@ -28,7 +29,7 @@ class Graph():
     '''
     edges = {}
     nodes = {}
-    degrees = defaultdict(list)
+    degrees = defaultdict(set)
     density = float(0)
 
     n_edges = 0
@@ -46,13 +47,13 @@ class Graph():
             # thus density(G1) = 5050/2, density(G2) = 5050/100
             # is G1 denser than G2 because of the amount of edges between the two nodes?
             # or should G2 be denser since it has more nodes densely packed?
-            self.edges[k] = list(filter(lambda x: x != k, map(str, v)))
+            self.edges[k] = set(filter(lambda x: x != k, map(str, v)))
 
 
         ### writing to degrees (O(V))
         for v, e in data.items():
             d = len(e)
-            self.degrees[d].append(v)
+            self.degrees[d].add(v)
             self.nodes[v] = d
 
         # NOTE: since we're building an undirected graph and duplicating every edge,
@@ -61,20 +62,15 @@ class Graph():
         self.n_nodes = len( self.nodes ) # O(V)
         self.n_edges = sum( map( len, self.edges.values() ) ) / 2 # O(E)
 
-        self.density = self.avg_degree_density()
+        self.update_avg_degree_density()
 
     def copy(self):
         '''
-            Runs a deepcopy in each attribute of the graph and returns a new one
-            (avoids issues when messing around with memory addresses)
+            Creates a new graph with same attributes
 
             WARNING: has linear complexity, can become quite dangerous if ran in a loop
         '''
-        H = Graph()
-        H.edges     = deepcopy(self.edges)
-        H.nodes     = deepcopy(self.nodes)
-        H.degrees   = deepcopy(self.degrees)
-        H.density   = self.density
+        H = Graph(self.edges)
 
         return H
 
@@ -89,7 +85,7 @@ class Graph():
 
         ### TODO: this is O(V), in the O(V+E) loop makes it quadratic
         ### alt idea: attr for Graph keeping track of what the min degree is
-        return min(filter(lambda x: x[1], self.degrees.items()))
+        return min(self.degrees)
 
     def remove_node(self, v):
         '''
@@ -97,44 +93,29 @@ class Graph():
             by updating the edges, degrees and nodes to reflect on such changes
         '''
 
-        ### TODO: O(V) since we're looking at every node connected to V to
-        # remove it from the graph;
-        # alt idea: not remove it from the edges of n, but rather go for a try-except type of deal
-        # while trying to take care of the degrees
-
-        ### TODO: in truth what we're fucking up is that we've got a massive overhead for creating two-sided edges
-        # maybe we could do a linear pre-analysis on the graph to count the original E and then just do maths, yknow
-        # thus we'll know where the algo will start and how it'll proceed (since it's deterministic)
-        # there's probably some clever way to make this constant time, it's all about the data structure
+        ### TODO: in the long run, O(E + V) since we're looking at every node connected to V to remove it from the graph;
 
         for n in self.edges[v]:
-            # removing v from the edges of each n
-            ### TODO: O(V), maybe we can find some other way to
-            ###       keep track of the degree of each node ?
-            degree_n_v = len([x for x in self.edges[n] if x == v])
-
-            self.edges[n] = [x for x in self.edges[n] if x != v]
-            
-            ## Alternatives:
-            ## functional approach, but actually takes longer
-            # self.edges[n] = list(filter(lambda x: x != v, self.edges[n]))
-            ## faster approach, but only removes one occurrence of v in self.edges[n] 
-            ## so doesn't really help if we have multiple edges between two nodes
-            # self.edges[n].remove(v)
+            ### NOTE: assuming we don't have multiple edges bc that complicates things
+            degree_n_v = 1
+            self.edges[n].remove( v )                   # O(1) with a set
 
             # updating their position on the degrees list
-            self.degrees[ self.nodes[n] ].remove( n )
+            self.degrees[ self.nodes[n] ].remove( n )   # O(1) with a set
+            if not self.degrees[ self.nodes[n] ]:       # O(1) with a set
+                del self.degrees[ self.nodes[n] ]       # O(1) with a set
+            
             self.nodes[n] -= degree_n_v
             self.n_edges  -= degree_n_v
-            self.degrees[ self.nodes[n] ].append( n )
+            self.degrees[ self.nodes[n] ].add( n )      # O(1) with a set
         
         # removing their references from the dicts
         self.n_nodes -= 1
-        del self.edges[v]
-        del self.nodes[v]
+        del self.edges[v]                               # O(1) with a dict
+        del self.nodes[v]                               # O(1) with a dict
 
 
-    def avg_degree_density(self):
+    def update_avg_degree_density(self):
         '''
             Calculates the average degree density of the graph, and saves it on the density attribute
             where average degree density = (number of edges) / (number of nodes)
@@ -153,18 +134,22 @@ def densest_subgraph(graph):
         Best case complexity:   O(V + E),       linear
         Worst case complexity:  O(2*(V + E)),   which is still linear but... eeeeeh
     '''
+
     G = graph.copy()
     max_den = 0
 
     # repeat while G isn't empty
     while G.edges:
-
         # find v in G with minimum degree d_G
-        min_deg, min_nodes = G.minimum_degree()
+        min_deg = G.minimum_degree()
+        min_nodes = G.degrees[min_deg]
         v = min_nodes.pop()
         
+        if not G.degrees[min_deg]:
+            del G.degrees[ min_deg ]
+        
         G.remove_node(v) # remove v and its edges from G
-        G.avg_degree_density() # updating the density
+        G.update_avg_degree_density() # updating the density
         
         if G.density > max_den:
             max_den = G.density
@@ -177,11 +162,16 @@ def densest_subgraph(graph):
 
     # repeat while current density is not the max density (and while G is not empty)
     while G.density != max_den and G.edges:
-        _, min_nodes = G.minimum_degree()
+        min_deg = G.minimum_degree()
+        min_nodes = G.degrees[min_deg]
         v = min_nodes.pop()
+        
+        if not G.degrees[min_deg]:
+            del G.degrees[ min_deg ]
+
 
         G.remove_node(v)
-        G.avg_degree_density()
+        G.update_avg_degree_density()
 
     return G
 
@@ -199,34 +189,65 @@ def densest_subgraph(graph):
 
 if __name__ == "__main__":
     ### READING INPUT FILE
-    if len(sys.argv) != 2:
-        raise Exception(f"{__file__} requires exactly 1 argument (input file)")
+    option = 0
+
+    if len(sys.argv) == 2:
+        option = sys.argv[1]
+
+        if option == 'example':
+            opt = 0
+        elif option == 'twitch':
+            opt = 1
+        elif option == 'facebook':
+            opt = 2
+        elif option == 'wiki':
+            opt = 3
+        elif option == 'internet':
+            opt = 4
+        else:
+            raise Exception(f"{sys.argv[1]} not an option!\nAvailable options: example, twitch, facebook, wiki, internet (leave empty for all of them)")
+        
     
-    path = os.getcwd()
-    path = os.path.join(path, sys.argv[1])
 
+    files = [
+            ('k-cores-example.csv', ','),
+            ('twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
+            ('facebook/facebook_combined.txt', ' '),
+            ('wikispeedia_paths-and-graph/links_edit.tsv', ','),
+            ('internet_topology/as-skitter-edit.csv', '\t'),
+        ]
 
-    print("Reading file...")
-    # reading complexity: O(number of lines)
-    with open(path) as f:
-        csvfile = csv.reader(f, delimiter=',')
-        data = defaultdict(list)
-        for n, t in csvfile:
-            data[n].append(t)
-            data[t].append(n)
+    if option:
+        files = [files[opt]]
 
-    print("Arranging data...")
-    graph = Graph(data)
+    project_path = os.getcwd()
 
-    import time
-    print("Looking for densest subgraph...")    
-    start = time.time()
+    for f, sep in files:
+        print(f"FILE: {f}")
+        path = os.path.join(project_path, f)
 
-    H = densest_subgraph(graph)
+        start = time.time()
+        # reading complexity: O(number of lines)
+        with open(path) as f:
+            csvfile = csv.reader(f, delimiter=sep)
+            data = defaultdict(list)
+            for n, t in csvfile:
+                data[n].append(t)
+                data[t].append(n)
+        end = time.time()
+        print("Read time:", end-start)
 
-    end = time.time()
+        start = time.time()
+        graph = Graph(data)
+        end = time.time()
+        print("Arranging time:", end-start)
 
-    print("Elapsed time:", end - start)
+        start = time.time()
+        H = densest_subgraph(graph)
+        end = time.time()
+
+        print("Densest subgraph algorithm time:", end - start)
+        print()
 
 
 
