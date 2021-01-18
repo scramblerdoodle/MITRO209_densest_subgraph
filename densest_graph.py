@@ -14,15 +14,21 @@ class Graph():
         Let's take the following simple graph as an example:
                             (A) - (B) - (C)
 
-            edges: (dict of lists) contains every node and its edges, it's also the expected input
-                e.g.    {A: [B], B:[A,C], C:[B]}
+            edges: (dict of sets) contains every node and its edges, it's also the expected input
+                e.g.    {A: {B}, B:{A,C}, C:{B}}
 
-            degrees: (dict of lists) for every degree d in the graph has a list containing the ids of every node with such degree
-                e.g.    {1: [A,C], 2:[B]}
+            degrees: (dict of sets) for every degree d in the graph has a list containing the ids of every node with such degree
+                e.g.    {1: {A,C}, 2:{B}}
                         means nodes A and C have degree 1, and node B has degree 2
 
             nodes: (dict of ints) keeps track of the degree of each node, essentially the dual of degrees
                 e.g.    {A: 1, B: 2, C: 1}
+
+            n_edges: (int) total number of edges in the graph
+                e.g.    One edge from A to B, one edge from B to C => 2 edges
+
+            n_nodes: (int) total number of nodes in the graph
+                e.g.    There are 3 nodes: A, B and C
 
             density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
                 e.g.    2 edges and 3 nodes => density = 2/3
@@ -30,15 +36,15 @@ class Graph():
     edges = {}
     nodes = {}
     degrees = defaultdict(set)
-    density = float(0)
 
     n_edges = 0
     n_nodes = 0
+    density = float(0)
     
     def __init__(self, data = {}):
-        for k,v in data.items():
-            # self.edges[k] = list(map(str, v))
+        ### Complexity of initialiation: O( V + E ) (i.e. size of data)
 
+        for k,v in data.items():
             # interesting little tidbit: the whole thing breaks when we try to add self edges
             # this raises the question: to consider a graph to be dense, shall we only consider the outgoing edges,
             # i.e. ignore the self-referencing ones? how about duplicated edges?
@@ -47,10 +53,13 @@ class Graph():
             # thus density(G1) = 5050/2, density(G2) = 5050/100
             # is G1 denser than G2 because of the amount of edges between the two nodes?
             # or should G2 be denser since it has more nodes densely packed?
+
+            # here we're going with the different nodes approach - in fact we ignore both self edges and multiply-connected nodes
+            # just for the sake of making things easier
             self.edges[k] = set(filter(lambda x: x != k, map(str, v)))
 
 
-        ### writing to degrees (O(V))
+        ### Writing to degrees
         for v, e in data.items():
             d = len(e)
             self.degrees[d].add(v)
@@ -62,72 +71,66 @@ class Graph():
         self.n_nodes = len( self.nodes ) # O(V)
         self.n_edges = sum( map( len, self.edges.values() ) ) / 2 # O(E)
 
-        self.update_avg_degree_density()
-
-    def copy(self):
-        '''
-            Creates a new graph with same attributes
-
-            WARNING: has linear complexity, can become quite dangerous if ran in a loop
-        '''
-        H = Graph()
-        H.edges = deepcopy(self.edges)
-        H.degrees = deepcopy(self.degrees)
-        H.nodes = self.nodes.copy()
-
-        H.density = self.density
-        H.n_nodes = self.n_nodes
-        H.n_edges = self.n_edges
-
-        return H
-
+        self.__update_avg_degree_density()
 
     def minimum_degree(self):
         '''
-            Returns a tuple of the minimum degree and the nodes corresponding to such degree,
-            i.e. (min_deg, min_nodes), where min_deg is an int, and min_nodes a list of node ids
+            Returns the smallest entry in self.degrees
         '''
-        # We have to filter out the empty entries in the degrees list
-        # otherwise we could return an empty list
-
-        ### TODO: this is O(V), in the O(V+E) loop makes it quadratic
-        ### alt idea: attr for Graph keeping track of what the min degree is
         return min(self.degrees)
 
     def remove_node(self, v):
         '''
             Removes a node v from the graph, i.e. the node itself and its edges
             by updating the edges, degrees and nodes to reflect on such changes
+
+            NOTE: Complexity is O(e_v), where e_v is the number of edges for the node v
+                    by looping over every node we essentially get O(E)
         '''
 
-        ### TODO: in the long run, O(E + V) since we're looking at every node connected to V to remove it from the graph;
-
+        # For each node connected to v, we remove it from their edges
         for n in self.edges[v]:
-            ### NOTE: assuming we don't have multiple edges bc that complicates things
-            degree_n_v = 1
             self.edges[n].remove( v )                   # O(1) with a set
 
-            # updating their position on the degrees list
-            self.degrees[ self.nodes[n] ].remove( n )   # O(1) with a set
-            if not self.degrees[ self.nodes[n] ]:       # O(1) with a set
-                del self.degrees[ self.nodes[n] ]       # O(1) with a set
+            # Updating their position on the degrees list
+            degree_n = self.nodes[n]
+            self.degrees[ degree_n ].remove( n )        # O(1) with a set
             
-            self.nodes[n] -= degree_n_v
-            self.n_edges  -= degree_n_v
+            # Removing the entry for this specific degree in case it's now empty
+            if not self.degrees[ degree_n ]:
+                del self.degrees[ degree_n ]            # O(1) with a set
+            
+            # And updating the overall data
+            self.nodes[n] -= 1
+            self.n_edges  -= 1
             self.degrees[ self.nodes[n] ].add( n )      # O(1) with a set
         
-        # removing their references from the dicts
+        # Removing the node v from the graph
         self.n_nodes -= 1
         del self.edges[v]                               # O(1) with a dict
         del self.nodes[v]                               # O(1) with a dict
 
+        self.__update_avg_degree_density()
 
-    def update_avg_degree_density(self):
+
+    def __update_avg_degree_density(self):
         '''
             Calculates the average degree density of the graph, and saves it on the density attribute
             where average degree density = (number of edges) / (number of nodes)
+            and updates it to the density attribute
         '''
         self.density = self.n_edges / self.n_nodes if self.n_nodes else 0 # sanity check
+
+
+    def __str__(self):
+        res = f"nodes: {' '.join(self.edges.keys())}\n" +\
+              f"\nnumber of nodes: {self.n_nodes}\n" +\
+              f"number of edges: { self.n_edges } \n" +\
+              f"density: {self.density}"
+            #   f"edges: {self.edges}\n"
+
+        
+        return res    
 
 
 # algorithm itself:
@@ -138,8 +141,13 @@ def densest_subgraph(data):
             First scan the graph to calculate its max density
             Then repeat the algorithm until we've achieved the max density
 
-        Best case complexity:   O(V + E),       linear
-        Worst case complexity:  O(2*(V + E)),   which is still linear but... eeeeeh
+        Complexity analysis
+            build graph:                 O ( V + E )
+            find max density:            O ( V + E )
+            rebuild graph:               O ( V + E )
+            reduce graph to max density: O ( V + E )
+
+        So it has linear complexity
     '''
 
     print("Building the graph...")
@@ -147,9 +155,10 @@ def densest_subgraph(data):
     G = Graph(data)
     end = time.time()
     print("Graph building time:", end-start,'\n')
-    max_den = 0
+
 
     print("Finding max density")
+    max_den = 0
     start = time.time()
     # repeat while G isn't empty
     while G.edges:
@@ -161,27 +170,22 @@ def densest_subgraph(data):
         if not G.degrees[min_deg]:
             del G.degrees[ min_deg ]
         
-        # try:
         G.remove_node(v) # remove v and its edges from G
-        # except:
-            # import pdb; pdb.set_trace()
-        G.update_avg_degree_density() # updating the density
-        
+
         if G.density > max_den:
             max_den = G.density
             # print("Density:",max_den)
 
-            ### NOTE: this was the old solution, however the deepcopy at nearly every loop destroys the performance
-            # H = G.copy()
-
     end = time.time()
     print("Algorithm duration:", end-start,'\n')
+
 
     print("Rebuilding graph...")
     start = time.time()
     G = Graph(data)
     end = time.time()
     print("Graph building time:", end-start,'\n')
+
 
     # repeat while current density is not the max density (and while G is not empty)
     print("Re-doing the steps until max density")
@@ -194,34 +198,18 @@ def densest_subgraph(data):
         if not G.degrees[min_deg]:
             del G.degrees[ min_deg ]
 
-
         G.remove_node(v)
-        G.update_avg_degree_density()
+
     end = time.time()
     print("Elapsed time:", end-start,'\n')
     return G
 
-
-
-### IDEAS:
-# lemma:
-# O being densest subgraph, then for all v in O, degree(v) >= avg_density(O)
-# e.g. if avg_density(G) = 1.5, we know that any node with degree < 1.5 is not in the densest graph, so remove them all
-# dunno if it's helpful but it could do something ?
-
-### NOTE: certainly helps with looking for the min degree, but still has to go and remove all the nodes so
-# I don't think it helps much; point is to make these steps O(1)
-
-import gc
 
 if __name__ == "__main__":
     try:
         opt = sys.argv[1]
     except IndexError:
         raise Exception(f"You need to specify the file! Options: example, twitch, facebook, wiki, internet")
-    
-
-
 
 
     files = {
@@ -256,5 +244,7 @@ if __name__ == "__main__":
         start = time.time()
         H = densest_subgraph(data)
         end = time.time()
+
+        print(H)
         
         print("Total algorithm elapsed time:", end - start,'\n')
