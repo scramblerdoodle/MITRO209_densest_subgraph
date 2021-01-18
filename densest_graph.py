@@ -86,6 +86,9 @@ class Graph():
         '''
         # We have to filter out the empty entries in the degrees list
         # otherwise we could return an empty list
+
+        ### TODO: this is O(V), in the O(V+E) loop makes it quadratic
+        ### alt idea: attr for Graph keeping track of what the min degree is
         return min(filter(lambda x: x[1], self.degrees.items()))
 
     def remove_node(self, v):
@@ -93,15 +96,29 @@ class Graph():
             Removes a node v from the graph, i.e. the node itself and its edges
             by updating the edges, degrees and nodes to reflect on such changes
         '''
+
+        ### TODO: O(V) since we're looking at every node connected to V to
+        # remove it from the graph;
+        # alt idea: not remove it from the edges of n, but rather go for a try-except type of deal
+        # while trying to take care of the degrees
+
+        ### TODO: in truth what we're fucking up is that we've got a massive overhead for creating two-sided edges
+        # maybe we could do a linear pre-analysis on the graph to count the original E and then just do maths, yknow
+        # thus we'll know where the algo will start and how it'll proceed (since it's deterministic)
+        # there's probably some clever way to make this constant time, it's all about the data structure
+
         for n in self.edges[v]:
             # removing v from the edges of each n
+            ### TODO: O(V), maybe we can find some other way to
+            ###       keep track of the degree of each node ?
             degree_n_v = len([x for x in self.edges[n] if x == v])
+
             self.edges[n] = [x for x in self.edges[n] if x != v]
             
             ## Alternatives:
             ## functional approach, but actually takes longer
             # self.edges[n] = list(filter(lambda x: x != v, self.edges[n]))
-            ## faster approach, but only removes one occurence of v in self.edges[n] 
+            ## faster approach, but only removes one occurrence of v in self.edges[n] 
             ## so doesn't really help if we have multiple edges between two nodes
             # self.edges[n].remove(v)
 
@@ -134,7 +151,7 @@ def densest_subgraph(graph):
             Then repeat the algorithm until we've achieved the max density
 
         Best case complexity:   O(V + E),       linear
-        Worst case complexity:  O(2*(V + E)),   which is still linear
+        Worst case complexity:  O(2*(V + E)),   which is still linear but... eeeeeh
     '''
     G = graph.copy()
     max_den = 0
@@ -175,6 +192,9 @@ def densest_subgraph(graph):
 # O being densest subgraph, then for all v in O, degree(v) >= avg_density(O)
 # e.g. if avg_density(G) = 1.5, we know that any node with degree < 1.5 is not in the densest graph, so remove them all
 # dunno if it's helpful but it could do something ?
+
+### NOTE: certainly helps with looking for the min degree, but still has to go and remove all the nodes so
+# I don't think it helps much; point is to make these steps O(1)
 
 
 if __name__ == "__main__":
