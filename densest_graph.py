@@ -69,7 +69,7 @@ class Graph():
         #       we must divide n_edges by 2 to take that into account
         
         self.n_nodes = len( self.nodes ) # O(V)
-        self.n_edges = sum( map( len, self.edges.values() ) ) / 2 # O(E)
+        self.n_edges = int( sum( map( len, self.edges.values() ) ) / 2 ) # O(E)
 
         self.__update_avg_degree_density()
 
@@ -150,14 +150,14 @@ def densest_subgraph(data):
         So it has linear complexity
     '''
 
-    print("Building the graph...")
+    print("\tBuilding the graph...")
     start = time.time()
     G = Graph(data)
     end = time.time()
-    print("Graph building time:", end-start,'\n')
+    print("\tGraph building time:", end-start,'\n')
 
 
-    print("Finding max density")
+    print("\tFinding max density")
     max_den = 0
     start = time.time()
     # repeat while G isn't empty
@@ -177,18 +177,18 @@ def densest_subgraph(data):
             # print("Density:",max_den)
 
     end = time.time()
-    print("Algorithm duration:", end-start,'\n')
+    print("\tAlgorithm duration:", end-start,'\n')
 
 
-    print("Rebuilding graph...")
+    print("\tRebuilding graph...")
     start = time.time()
     G = Graph(data)
     end = time.time()
-    print("Graph building time:", end-start,'\n')
+    print("\tGraph building time:", end-start,'\n')
 
 
     # repeat while current density is not the max density (and while G is not empty)
-    print("Re-doing the steps until max density")
+    print("\tRe-doing the steps until max density")
     start = time.time()
     while G.density != max_den and G.edges:
         min_deg = G.minimum_degree()
@@ -201,7 +201,7 @@ def densest_subgraph(data):
         G.remove_node(v)
 
     end = time.time()
-    print("Elapsed time:", end-start,'\n')
+    print("\tElapsed time:", end-start,'\n')
     return G
 
 
