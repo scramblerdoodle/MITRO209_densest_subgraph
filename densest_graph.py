@@ -217,6 +217,7 @@ if __name__ == "__main__":
             'twitch': ('twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
             'facebook': ('facebook/facebook_combined.txt', ' '),
             'wiki': ('wikispeedia_paths-and-graph/links_edit.tsv', ','),
+            'california': ('roadNet-CA/roadNet-CA.txt', '\t'),
             'internet': ('internet_topology/as-skitter-edit.csv', '\t'),
     }
 
@@ -244,6 +245,13 @@ if __name__ == "__main__":
         start = time.time()
         H = densest_subgraph(data)
         end = time.time()
+
+        orig_V = len(data)
+        orig_E = int(sum(map(len, data.values()))/2)
+        print("V:", orig_V)
+        print("E:", orig_E)
+        print("V + E:", orig_V + orig_E)
+        print()
 
         print(H)
         
