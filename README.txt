@@ -1,24 +1,14 @@
 working examples:
 k-cores-example.csv
 twitch/ENGB/musae_ENGB_edges_edit.csv
+facebook/facebook_combined.txt
 wikispeedia_paths-and-graph/links_edit.tsv
-
-takes forever but it's there:
 internet_topology/as-skitter-edit.csv
 
 
-
-Densities and elapsed times: 
-source                max density         elapsed time (seconds)            sample size                 total size (V+E)
-course example              2                0.0002207756042480         V: 10,      E: 16                     26
-twitch              11.928571428571429       1.8021302223205566         V: 7126,    E: 70648                 77.774
-facebook            77.34653465346534        2.416614532470703          V: 4039,    E: 88234                 92.273
-wikispeedia         48.71910112359551        6.0385119915008545         V: 4592,    E: 239544               244.136
-internet-topology   ?????????????????            infinite               V: 1696415, E: 11095298            12.791.713
-
-
-expected elapsed time:
-twitch:         0.660407763260921
-facebook:       2.138091933090554
-wikispeedia:    5.656965874925443
-internet-top:   316.3929627024993       NOT TRUE AT ALL... fuck
+SOURCE,SAMPLE # NODES,SAMPLE # EDGES,TOTAL SAMPLE SIZE (V + E),FINAL SOL,MAX DENSITY,READING TIME,GRAPH BUILDING,ALGORITHM,TOTAL ELAPSED TIME
+example,10,16,26,V: 5, E:10,2,0.0001857280731,3.17E-05,5.20E-05,0.0002753734589
+twitch,7126,35324,42450,V: 459, E:5475,11.92810458,0.02626872063,0.04561161995,0.08642625809,0.2278988361
+facebook,4039,88234,92273,V: 202, E:15624,77.34653465,0.06426644325,0.05595946312,0.1344313622,0.3494474888
+wikispeedia,4592,119882,124474,V:468, E:18660,39.87179487,0.1188323498,0.09461712837,0.1909329891,0.5184550285
+internet,1696415,11095298,12791713,V:430, E:38341,89.16511628,13.65575337,21.5693469,81.23937178,199.3052955
