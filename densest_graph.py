@@ -70,7 +70,14 @@ class Graph():
 
             WARNING: has linear complexity, can become quite dangerous if ran in a loop
         '''
-        H = Graph(self.edges)
+        H = Graph()
+        H.edges = deepcopy(self.edges)
+        H.degrees = deepcopy(self.degrees)
+        H.nodes = self.nodes.copy()
+
+        H.density = self.density
+        H.n_nodes = self.n_nodes
+        H.n_edges = self.n_edges
 
         return H
 
@@ -124,7 +131,7 @@ class Graph():
 
 
 # algorithm itself:
-def densest_subgraph(graph):
+def densest_subgraph(data):
     '''
         Densest Subgraph Algorithm
         Essentially has two parts:
@@ -135,9 +142,15 @@ def densest_subgraph(graph):
         Worst case complexity:  O(2*(V + E)),   which is still linear but... eeeeeh
     '''
 
-    G = graph.copy()
+    print("Building the graph...")
+    start = time.time()
+    G = Graph(data)
+    end = time.time()
+    print("Graph building time:", end-start,'\n')
     max_den = 0
 
+    print("Finding max density")
+    start = time.time()
     # repeat while G isn't empty
     while G.edges:
         # find v in G with minimum degree d_G
@@ -148,7 +161,10 @@ def densest_subgraph(graph):
         if not G.degrees[min_deg]:
             del G.degrees[ min_deg ]
         
+        # try:
         G.remove_node(v) # remove v and its edges from G
+        # except:
+            # import pdb; pdb.set_trace()
         G.update_avg_degree_density() # updating the density
         
         if G.density > max_den:
@@ -158,9 +174,18 @@ def densest_subgraph(graph):
             ### NOTE: this was the old solution, however the deepcopy at nearly every loop destroys the performance
             # H = G.copy()
 
-    G = graph.copy()
+    end = time.time()
+    print("Algorithm duration:", end-start,'\n')
+
+    print("Rebuilding graph...")
+    start = time.time()
+    G = Graph(data)
+    end = time.time()
+    print("Graph building time:", end-start,'\n')
 
     # repeat while current density is not the max density (and while G is not empty)
+    print("Re-doing the steps until max density")
+    start = time.time()
     while G.density != max_den and G.edges:
         min_deg = G.minimum_degree()
         min_nodes = G.degrees[min_deg]
@@ -172,7 +197,8 @@ def densest_subgraph(graph):
 
         G.remove_node(v)
         G.update_avg_degree_density()
-
+    end = time.time()
+    print("Elapsed time:", end-start,'\n')
     return G
 
 
@@ -186,39 +212,27 @@ def densest_subgraph(graph):
 ### NOTE: certainly helps with looking for the min degree, but still has to go and remove all the nodes so
 # I don't think it helps much; point is to make these steps O(1)
 
+import gc
 
 if __name__ == "__main__":
-    ### READING INPUT FILE
-    option = 0
-
-    if len(sys.argv) == 2:
-        option = sys.argv[1]
-
-        if option == 'example':
-            opt = 0
-        elif option == 'twitch':
-            opt = 1
-        elif option == 'facebook':
-            opt = 2
-        elif option == 'wiki':
-            opt = 3
-        elif option == 'internet':
-            opt = 4
-        else:
-            raise Exception(f"{sys.argv[1]} not an option!\nAvailable options: example, twitch, facebook, wiki, internet (leave empty for all of them)")
-        
+    try:
+        opt = sys.argv[1]
+    except IndexError:
+        raise Exception(f"You need to specify the file! Options: example, twitch, facebook, wiki, internet")
     
 
-    files = [
-            ('k-cores-example.csv', ','),
-            ('twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
-            ('facebook/facebook_combined.txt', ' '),
-            ('wikispeedia_paths-and-graph/links_edit.tsv', ','),
-            ('internet_topology/as-skitter-edit.csv', '\t'),
-        ]
 
-    if option:
-        files = [files[opt]]
+
+
+    files = {
+            'example': ('k-cores-example.csv', ','),
+            'twitch': ('twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
+            'facebook': ('facebook/facebook_combined.txt', ' '),
+            'wiki': ('wikispeedia_paths-and-graph/links_edit.tsv', ','),
+            'internet': ('internet_topology/as-skitter-edit.csv', '\t'),
+    }
+
+    files = [files[opt]]
 
     project_path = os.getcwd()
 
@@ -226,8 +240,9 @@ if __name__ == "__main__":
         print(f"FILE: {f}")
         path = os.path.join(project_path, f)
 
+        # reading complexity: O( V + E ) (aka number of lines in the file)
+        print("Reading file...")
         start = time.time()
-        # reading complexity: O(number of lines)
         with open(path) as f:
             csvfile = csv.reader(f, delimiter=sep)
             data = defaultdict(list)
@@ -235,20 +250,11 @@ if __name__ == "__main__":
                 data[n].append(t)
                 data[t].append(n)
         end = time.time()
-        print("Read time:", end-start)
-
+        print("Elapsed time:", end-start,'\n')
+        
+        print("Running densest subgraph algorithm...")
         start = time.time()
-        graph = Graph(data)
+        H = densest_subgraph(data)
         end = time.time()
-        print("Arranging time:", end-start)
-
-        start = time.time()
-        H = densest_subgraph(graph)
-        end = time.time()
-
-        print("Densest subgraph algorithm time:", end - start)
-        print()
-
-
-
-    
+        
+        print("Total algorithm elapsed time:", end - start,'\n')
