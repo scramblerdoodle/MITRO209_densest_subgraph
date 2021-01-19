@@ -206,12 +206,6 @@ def densest_subgraph(data):
 
 
 if __name__ == "__main__":
-    try:
-        opt = sys.argv[1]
-    except IndexError:
-        raise Exception(f"You need to specify the file! Options: example, twitch, facebook, wiki, internet")
-
-
     files = {
             'example': ('data/k-cores-example.csv', ','),
             'twitch': ('data/twitch.csv', ','),
@@ -221,7 +215,17 @@ if __name__ == "__main__":
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
-    files = [files[opt]]
+    try:
+        opt = sys.argv[1]
+    except IndexError:
+        raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
+
+
+    try:
+        files = [files[opt]]
+    except KeyError:
+        raise Exception(f"{opt} not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
+
 
     project_path = os.getcwd()
 
@@ -233,15 +237,12 @@ if __name__ == "__main__":
         print("Reading file...")
         start = time.time()
 
-        try:
-            with open(path) as f:
-                csvfile = csv.reader(f, delimiter=sep)
-                data = defaultdict(list)
-                for n, t in csvfile:
-                    data[n].append(t)
-                    data[t].append(n)
-        except FileNotFoundError:
-            raise Exception(f"{f} not found! Did you remember to extract data.rar?")
+        with open(path) as f:
+            csvfile = csv.reader(f, delimiter=sep)
+            data = defaultdict(list)
+            for n, t in csvfile:
+                data[n].append(t)
+                data[t].append(n)
 
         end = time.time()
         print("Elapsed time:", end-start,'\n')
