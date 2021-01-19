@@ -214,11 +214,11 @@ if __name__ == "__main__":
 
     files = {
             'example': ('data/k-cores-example.csv', ','),
-            'twitch': ('data/twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
-            'facebook': ('data/facebook/facebook_combined.txt', ' '),
-            'wiki': ('data/wikispeedia_paths-and-graph/links_edit.tsv', ','),
-            'california': ('data/roadNet-CA/roadNet-CA.txt', '\t'),
-            'internet': ('data/internet_topology/as-skitter.csv', '\t'),
+            'twitch': ('data/twitch.csv', ','),
+            'facebook': ('data/facebook.txt', ' '),
+            'wiki': ('data/wikispeedia.tsv', ','),
+            'california': ('data/roadNet-CA.txt', '\t'),
+            'internet': ('data/internet_topology.csv', '\t'),
     }
 
     files = [files[opt]]
