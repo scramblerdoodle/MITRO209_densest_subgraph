@@ -213,12 +213,12 @@ if __name__ == "__main__":
 
 
     files = {
-            'example': ('k-cores-example.csv', ','),
-            'twitch': ('twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
-            'facebook': ('facebook/facebook_combined.txt', ' '),
-            'wiki': ('wikispeedia_paths-and-graph/links_edit.tsv', ','),
-            'california': ('roadNet-CA/roadNet-CA.txt', '\t'),
-            'internet': ('internet_topology/as-skitter-edit.csv', '\t'),
+            'example': ('data/k-cores-example.csv', ','),
+            'twitch': ('data/twitch/ENGB/musae_ENGB_edges_edit.csv', ','),
+            'facebook': ('data/facebook/facebook_combined.txt', ' '),
+            'wiki': ('data/wikispeedia_paths-and-graph/links_edit.tsv', ','),
+            'california': ('data/roadNet-CA/roadNet-CA.txt', '\t'),
+            'internet': ('data/internet_topology/as-skitter.csv', '\t'),
     }
 
     files = [files[opt]]
@@ -232,12 +232,17 @@ if __name__ == "__main__":
         # reading complexity: O( V + E ) (aka number of lines in the file)
         print("Reading file...")
         start = time.time()
-        with open(path) as f:
-            csvfile = csv.reader(f, delimiter=sep)
-            data = defaultdict(list)
-            for n, t in csvfile:
-                data[n].append(t)
-                data[t].append(n)
+
+        try:
+            with open(path) as f:
+                csvfile = csv.reader(f, delimiter=sep)
+                data = defaultdict(list)
+                for n, t in csvfile:
+                    data[n].append(t)
+                    data[t].append(n)
+        except FileNotFoundError:
+            raise Exception(f"{f} not found! Did you remember to extract data.rar?")
+
         end = time.time()
         print("Elapsed time:", end-start,'\n')
         
