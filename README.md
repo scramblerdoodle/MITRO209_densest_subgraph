@@ -1,6 +1,6 @@
 # Densest Subgraph
 
-A small project for the MITRO209 course at Télécom Paris. The goal is to find the densest subgraph for an undirected graph in linear time, using data from [Stanford](http://snap.stanford.edu/data/index.html) as a base.  
+A small project for the MITRO209 course at Télécom Paris. The goal is to find the densest subgraph for an undirected graph in linear time, using data from the [Stanford Network Analysis Project](http://snap.stanford.edu/data/index.html) as a base.  
 P.S.: not a densest k-subgraph because, y'know, NP-complete.
 
 ## Getting Started
@@ -10,12 +10,18 @@ P.S.: not a densest k-subgraph because, y'know, NP-complete.
     - [twitch](http://snap.stanford.edu/data/twitch-social-networks.html): graph representing connections between different English-speaking streamers on Twitch
     - [facebook](http://snap.stanford.edu/data/ego-Facebook.html): friends lists on Facebook 
     - [wiki](http://snap.stanford.edu/data/wikispeedia.html): paths in the online game Wikispeedia
+    - [deezer](http://snap.stanford.edu/data/gemsec-Deezer.html):
     - [california](http://snap.stanford.edu/data/roadNet-CA.html): road network of California
+    - [fb-artist](http://snap.stanford.edu/data/gemsec-Facebook.html): data from Facebook pages from November 2017, "Artist" category
+    - [dblp](http://snap.stanford.edu/data/com-DBLP.html): DBLP collaboration network
+    - [twitter](http://snap.stanford.edu/data/ego-Twitter.html): social circles on Twitter
+    - [youtube](http://snap.stanford.edu/data/com-Youtube.html): Youtube social network
     - [internet](http://snap.stanford.edu/data/as-Skitter.html): internet topology graph from traceroutes ran in 2005
 
-## Some algorithm analysis and data comparison
 
-| SOURCE      | ORIGINAL V     | ORIGINAL E     | V + E                     | FINAL SOL          | MAX DENSITY | READING TIME    | GRAPH BUILDING | ALGORITHM     | TOTAL ELAPSED TIME |
+## Some data comparison
+
+| SOURCE      | SAMPLE # NODES | SAMPLE # EDGES | TOTAL SAMPLE SIZE (V + E) | FINAL SOL          | MAX DENSITY | READING TIME    | GRAPH BUILDING | ALGORITHM     | TOTAL ELAPSED TIME |
 |-------------|----------------|----------------|---------------------------|--------------------|-------------|-----------------|----------------|---------------|--------------------|
 | example     |       10       |       16       |             26            |     V: 5, E:10     |      2      | 0.0001857280731 |    3.17E-05    |    5.20E-05   |   0.0002753734589  |
 | twitch      |      7,126     |     35,324     |           42,450          |   V: 459, E:5475   | 11.92810458 |  0.02626872063  |  0.04561161995 | 0.08642625809 |    0.2278988361    |
