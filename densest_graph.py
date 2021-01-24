@@ -129,34 +129,28 @@ class Graph():
         
         return res    
 
-
-# algorithm itself:
-def densest_subgraph(data):
+def find_max_density(data):
     '''
-        Densest Subgraph Algorithm
-        Essentially has two parts:
-            First scan the graph to calculate its max density
-            Then repeat the algorithm until we've achieved the max density
+        Find maximum density
+        Analyses the graph to calculate its max density
+        
+        Essentially has the same goal as the densest subgraph algorithm,
+        but helps in the complexity by breaking it into two different parts
+            
 
         Complexity analysis
             build graph:                 O ( V + E )
             find max density:            O ( V + E )
-            rebuild graph:               O ( V + E )
-            reduce graph to max density: O ( V + E )
 
         So it has linear complexity
     '''
-
     print("\tBuilding the graph...")
     start = time.time()
     G = Graph(data)
     end = time.time()
     print("\tGraph building time:", end-start,'\n')
-    print("\tProcessed graph size:")
-    print("\t\tV:",G.n_nodes)
-    print("\t\tE:",G.n_edges)
+    print("\tProcessed graph size:","\n\t\tV:",G.n_nodes,"\n\t\tE:",G.n_edges)
     print("\t\tV+E:",G.n_nodes + G.n_edges)
-
 
 
     print("\tFinding max density")
@@ -181,7 +175,21 @@ def densest_subgraph(data):
     end = time.time()
     print("\tAlgorithm duration:", end-start,'\n')
 
+    return max_den
 
+
+def densest_subgraph(data, max_den=0):
+    '''
+        Densest Subgraph Algorithm
+        Essentially has two parts:
+            Runs the algorithm until we've achieved the max density found in the previous function
+
+        Complexity analysis
+            rebuild graph:               O ( V + E )
+            reduce graph to max density: O ( V + E )
+
+        So it has linear complexity
+    '''
     print("\tRebuilding graph...")
     start = time.time()
     G = Graph(data)
@@ -255,17 +263,20 @@ if __name__ == "__main__":
         orig_V = len(data)
         orig_E = int(sum(map(len, data.values()))/2)
         print("Elapsed time:", end-start,'\n')
-        print("Dataset size:",)
-        print("V:", orig_V)
-        print("E:", orig_E)
-        print("V + E:", orig_V + orig_E)
+        print("Dataset size:","\n\tV:", orig_V,"\n\tE:", orig_E, )
+        print("\tV + E:", orig_V + orig_E)
         print()
         
+        print("Looking for the maximum density...")
+        start = time.time()
+        max_density = find_max_density(data)
+        end = time.time()
+        print("Max density elapsed time:", end - start,'\n')
+
         print("Running densest subgraph algorithm...")
         start = time.time()
-        H = densest_subgraph(data)
+        H = densest_subgraph(data, max_density)
         end = time.time()
-
-
         print("Total algorithm elapsed time:", end - start,'\n')
+
         print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
