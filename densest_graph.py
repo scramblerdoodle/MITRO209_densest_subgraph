@@ -57,12 +57,10 @@ class Graph():
             # just for the sake of making things easier
             self.edges[k] = set(filter(lambda x: x != k, map(str, v)))
 
-
-        ### Writing to degrees
-        for v, e in data.items():
-            d = len(e)
-            self.degrees[d].add(v)
-            self.nodes[v] = d
+            ### Writing to degrees
+            d = len(v)
+            self.degrees[d].add(k)
+            self.nodes[k] = d
 
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
@@ -154,6 +152,11 @@ def densest_subgraph(data):
     G = Graph(data)
     end = time.time()
     print("\tGraph building time:", end-start,'\n')
+    print("\tProcessed graph size:")
+    print("\t\tV:",G.n_nodes)
+    print("\t\tE:",G.n_edges)
+    print("\t\tV+E:",G.n_nodes + G.n_edges)
+
 
 
     print("\tFinding max density")
@@ -211,6 +214,7 @@ if __name__ == "__main__":
             'facebook': ('data/facebook.txt', ' '),
             'wiki': ('data/wikispeedia.tsv', ','),
             'deezer': ('data/HR_edges.csv', ','),
+            'california': ('data/roadNet-CA.txt', '\t'),
             'fb-artist': ('data/artist_edges.csv', ','),
             'dblp':('data/com-dblp.ungraph.txt','\t'),
             'twitter':('data/twitter_combined.txt', ' '),
@@ -248,19 +252,20 @@ if __name__ == "__main__":
                 data[t].append(n)
 
         end = time.time()
+        orig_V = len(data)
+        orig_E = int(sum(map(len, data.values()))/2)
         print("Elapsed time:", end-start,'\n')
+        print("Dataset size:",)
+        print("V:", orig_V)
+        print("E:", orig_E)
+        print("V + E:", orig_V + orig_E)
+        print()
         
         print("Running densest subgraph algorithm...")
         start = time.time()
         H = densest_subgraph(data)
         end = time.time()
 
-        orig_V = len(data)
-        orig_E = int(sum(map(len, data.values()))/2)
-        print("V:", orig_V)
-        print("E:", orig_E)
-        print("V + E:", orig_V + orig_E)
-        print()
 
         print("Total algorithm elapsed time:", end - start,'\n')
         print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
