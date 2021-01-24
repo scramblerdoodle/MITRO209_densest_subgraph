@@ -3,7 +3,6 @@ import csv
 import os, sys
 import time
 from collections import defaultdict
-from copy import deepcopy
 
 class Graph():
     '''
@@ -211,7 +210,11 @@ if __name__ == "__main__":
             'twitch': ('data/twitch.csv', ','),
             'facebook': ('data/facebook.txt', ' '),
             'wiki': ('data/wikispeedia.tsv', ','),
-            'california': ('data/roadNet-CA.txt', '\t'),
+            'deezer': ('data/HR_edges.csv', ','),
+            'fb-artist': ('data/artist_edges.csv', ','),
+            'dblp':('data/com-dblp.ungraph.txt','\t'),
+            'twitter':('data/twitter_combined.txt', ' '),
+            'youtube': ('data/com-youtube.ungraph.txt','\t'),
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
@@ -233,7 +236,7 @@ if __name__ == "__main__":
         print(f"FILE: {f}")
         path = os.path.join(project_path, f)
 
-        # reading complexity: O( V + E ) (aka number of lines in the file)
+        # reading complexity: O( number of lines ) (number of lines = E)
         print("Reading file...")
         start = time.time()
 
@@ -259,6 +262,5 @@ if __name__ == "__main__":
         print("V + E:", orig_V + orig_E)
         print()
 
-        print(H)
-        
         print("Total algorithm elapsed time:", end - start,'\n')
+        print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
