@@ -41,15 +41,7 @@ class Graph():
     density = float(0)
     
     def __init__(self, filepath = ''):
-        # interesting little tidbit: the whole thing breaks when we try to add self loops or multiple edges
-        # so it raises the question: how do we compute the density of a non-simple graph?
-        # e.g. let G1 be a graph with only two nodes but 5050 edges between them 
-        # and G2 a graph with 100 inter-connected nodes
-        # thus, with the usual definition, density(G1) = 5050/2, density(G2) = 5050/100
-        # is G1 denser than G2 because of the amount of edges between the two nodes?
-        # or should G2 be denser since it has more nodes densely packed amongst themselves?
-
-        # Because of this, we're transforming the graph into a simple graph
+        # We're transforming the graph into a simple graph
         with open(filepath) as f:
             csvfile = csv.reader(f, delimiter=sep)
             for n, t in csvfile:
@@ -76,6 +68,7 @@ class Graph():
         '''
             Returns the smallest entry in self.degrees
         '''
+        ### TODO: is it REALLY O(1) ?
         return min(self.degrees)
 
     def remove_node(self, v):
@@ -122,89 +115,52 @@ class Graph():
 
 
     def __str__(self):
-        res = f"nodes: {' '.join(self.edges.keys())}\n" +\
-              f"\nnumber of nodes: {self.n_nodes}\n" +\
-              f"number of edges: { self.n_edges } \n" +\
-              f"density: {self.density}"
+        res = \
+            f"\nnumber of nodes: {self.n_nodes}\n" +\
+            f"number of edges: { self.n_edges } \n" +\
+            f"density: {self.density}"
+            # f"nodes: {' '.join(self.edges.keys())}\n" +\
             #   f"edges: {self.edges}\n"
 
         
         return res    
 
-def find_max_density(G):
-    '''
-        Find maximum density
-        Analyses the graph to calculate its max density
-        
-        Essentially has the same goal as the densest subgraph algorithm,
-        but helps in the complexity by breaking it into two different parts
+    def densest_subgraph(self):
+        '''
+            Find maximum density
+            Analyses the graph to calculate its max density
             
+            Essentially has the same goal as the densest subgraph algorithm,
+            but helps in the complexity by breaking it into two different parts
+                
 
-        Complexity analysis
-            find max density:            O ( V + E )
+            Complexity analysis
+                find max density:            O ( V + E )
 
-        So it has linear complexity
-    '''
-    print("\tFinding max density")
-    max_den = 0
-    start = time.time()
-    # repeat while G isn't empty
-    while G.edges:
-        # find v in G with minimum degree d_G
-        min_deg = G.minimum_degree()
-        min_nodes = G.degrees[min_deg]
-        v = min_nodes.pop()
+            So it has linear complexity
+        '''
+        max_den = 0
+        to_remove = []
+        densest_to_remove = []
         
-        if not G.degrees[min_deg]:
-            del G.degrees[ min_deg ]
-        
-        G.remove_node(v) # remove v and its edges from G
+        # repeat while G isn't empty
+        while self.edges:
+            # find v in G with minimum degree d_G
+            min_deg = self.minimum_degree()
+            min_nodes = self.degrees[min_deg]
+            v = min_nodes.pop()
+            
+            if not self.degrees[min_deg]:   del self.degrees[ min_deg ]
+            
+            self.remove_node(v) # remove v and its edges from G
+            to_remove.append(v)
 
-        if G.density > max_den:
-            max_den = G.density
-            # print("Density:",max_den)
+            if self.density > max_den:
+                max_den = self.density
+                densest_to_remove += to_remove
+                to_remove = []
 
-    end = time.time()
-    print("\tAlgorithm duration:", end-start,'\n')
-
-    return max_den
-
-
-def densest_subgraph(path, max_den=0):
-    '''
-        Densest Subgraph Algorithm
-        Essentially has two parts:
-            Runs the algorithm until we've achieved the max density found in the previous function
-
-        Complexity analysis
-            rebuild graph:               O ( V + E )
-            reduce graph to max density: O ( V + E )
-
-        So it has linear complexity
-    '''
-    print("\tRebuilding graph...")
-    start = time.time()
-    G = Graph(path)
-    end = time.time()
-    print("\tGraph building time:", end-start,'\n')
-
-
-    # repeat while current density is not the max density (and while G is not empty)
-    print("\tRe-doing the steps until max density")
-    start = time.time()
-    while G.density != max_den and G.edges:
-        min_deg = G.minimum_degree()
-        min_nodes = G.degrees[min_deg]
-        v = min_nodes.pop()
-        
-        if not G.degrees[min_deg]:
-            del G.degrees[ min_deg ]
-
-        G.remove_node(v)
-
-    end = time.time()
-    print("\tElapsed time:", end-start,'\n')
-    return G
+        return densest_to_remove
 
 
 if __name__ == "__main__":
@@ -214,11 +170,11 @@ if __name__ == "__main__":
             'facebook': ('data/facebook.txt', ' '),
             'wiki': ('data/wikispeedia.tsv', ','),
             'deezer': ('data/HR_edges.csv', ','),
-            'california': ('data/roadNet-CA.txt', '\t'),
             'fb-artist': ('data/artist_edges.csv', ','),
             'dblp':('data/com-dblp.ungraph.txt','\t'),
             'twitter':('data/twitter_combined.txt', ' '),
             'youtube': ('data/com-youtube.ungraph.txt','\t'),
+            'california': ('data/roadNet-CA.txt', '\t'),
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
@@ -249,16 +205,21 @@ if __name__ == "__main__":
         print("\tV + E:", G.n_nodes + G.n_edges)
         print()
 
-        print("Looking for the maximum density...")
+        print("Looking for the maximum density subgraph...")
         start = time.time()
-        max_density = find_max_density(G)
+        to_remove = G.densest_subgraph()
         end = time.time()
-        print("Max density elapsed time:", end - start,'\n')
+        print("Algorithm elapsed time:", end - start,'\n')
 
-        print("Running densest subgraph algorithm...")
+
+        print("Rebuild graph and removing the nodes that were removed during the algorithm...")
         start = time.time()
-        H = densest_subgraph(path, max_density)
+        G = Graph(path)
+        for n in to_remove:
+            G.remove_node(n)
         end = time.time()
-        print("Total algorithm elapsed time:", end - start,'\n')
+        print("Total rebuild time:", end - start,'\n')
+
+        print(G)
 
         print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
