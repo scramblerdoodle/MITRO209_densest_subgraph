@@ -44,20 +44,11 @@ class Graph():
         ### Complexity of initialiation: O( V + E ) (i.e. size of data)
 
         for k,v in data.items():
-            # interesting little tidbit: the whole thing breaks when we try to add self edges
-            # this raises the question: to consider a graph to be dense, shall we only consider the outgoing edges,
-            # i.e. ignore the self-referencing ones? how about duplicated edges?
-            # e.g. let G1 be a graph with 5050 edges between two nodes 
-            # and G2 a graph with 100 inter-connected nodes
-            # thus density(G1) = 5050/2, density(G2) = 5050/100
-            # is G1 denser than G2 because of the amount of edges between the two nodes?
-            # or should G2 be denser since it has more nodes densely packed?
-
-            # here we're going with the different nodes approach - in fact we ignore both self edges and multiply-connected nodes
-            # just for the sake of making things easier
+            # Here we're transforming the original graph into a simple undirected graph 
+            # i.e. no multiple edges between nodes, nor any self-loops
             self.edges[k] = set(filter(lambda x: x != k, map(str, v)))
 
-            ### Writing to degrees
+            ### Saving the degree of each node for future reference
             d = len(v)
             self.degrees[d].add(k)
             self.nodes[k] = d
@@ -231,15 +222,16 @@ if __name__ == "__main__":
     }
 
     try:
-        opt = sys.argv[1]
+        opts = sys.argv[1:]
+        print(opts)
     except IndexError:
         raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
 
 
     try:
-        files = [files[opt]]
+        files = [files[opt] for opt in opts]
     except KeyError:
-        raise Exception(f"{opt} not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
+        raise Exception(f"One of the files was not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
 
 
     project_path = os.getcwd()
