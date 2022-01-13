@@ -16,7 +16,7 @@ class Graph():
             edges: (dict of sets) contains every node and its edges, it's also the expected input
                 e.g.    {A: {B}, B:{A,C}, C:{B}}
 
-            degrees: (dict of sets) for every degree d in the graph has a list containing the ids of every node with such degree
+            degrees: (dict of sets) for every degree d in the graph has a set containing the ids of every node with such degree
                 e.g.    {1: {A,C}, 2:{B}}
                         means nodes A and C have degree 1, and node B has degree 2
 
@@ -32,40 +32,43 @@ class Graph():
             density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
                 e.g.    2 edges and 3 nodes => density = 2/3
     '''
-    edges = {}
-    nodes = {}
+    edges = defaultdict(set)
+    nodes = defaultdict(int)
     degrees = defaultdict(set)
 
     n_edges = 0
     n_nodes = 0
     density = float(0)
     
-    def __init__(self, data = {}):
-        ### Complexity of initialiation: O( V + E ) (i.e. size of data)
+    def __init__(self, filepath = ''):
+        # interesting little tidbit: the whole thing breaks when we try to add self loops or multiple edges
+        # so it raises the question: how do we compute the density of a non-simple graph?
+        # e.g. let G1 be a graph with only two nodes but 5050 edges between them 
+        # and G2 a graph with 100 inter-connected nodes
+        # thus, with the usual definition, density(G1) = 5050/2, density(G2) = 5050/100
+        # is G1 denser than G2 because of the amount of edges between the two nodes?
+        # or should G2 be denser since it has more nodes densely packed amongst themselves?
 
-        for k,v in data.items():
-            # interesting little tidbit: the whole thing breaks when we try to add self loops or multiple edges
-            # so it raises the question: how do we compute the density of a non-simple graph?
-            # e.g. let G1 be a graph with only two nodes but 5050 edges between them 
-            # and G2 a graph with 100 inter-connected nodes
-            # thus, with the usual definition, density(G1) = 5050/2, density(G2) = 5050/100
-            # is G1 denser than G2 because of the amount of edges between the two nodes?
-            # or should G2 be denser since it has more nodes densely packed amongst themselves?
+        # Because of this, we're transforming the graph into a simple graph
+        with open(filepath) as f:
+            csvfile = csv.reader(f, delimiter=sep)
+            for n, t in csvfile:
+                # Ignore self-loops
+                if n != t:
+                    # Add each edge once (using sets) but make it bi-directional (by adding it both to the origin and the target)
+                    self.edges[n].add(t)
+                    self.edges[t].add(n)
 
-            # here we're going with the different nodes approach - in fact we transform the original graph into a simple graph
-            # i.e. we ignore multiple edges and self-loops
-            self.edges[k] = set(filter(lambda x: x != k, map(str, v)))
-
-            ### Writing to degrees
-            d = len(v)
-            self.degrees[d].add(k)
-            self.nodes[k] = d
+        for node, edges in self.edges.items():
+            d = len(edges)
+            self.degrees[d].add(node)
+            self.nodes[node] = d
 
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
         
-        self.n_nodes = len( self.nodes ) # O(V)
-        self.n_edges = int( sum( map( len, self.edges.values() ) ) / 2 ) # O(E)
+        self.n_nodes = len( self.nodes )
+        self.n_edges = int( sum( map( len, self.edges.values() ) ) / 2 )
 
         self.__update_avg_degree_density()
 
@@ -94,7 +97,7 @@ class Graph():
             
             # Removing the entry for this specific degree in case it's now empty
             if not self.degrees[ degree_n ]:
-                del self.degrees[ degree_n ]            # O(1) with a set
+                del self.degrees[ degree_n ]            # O(1) with a dict
             
             # And updating the overall data
             self.nodes[n] -= 1
@@ -128,7 +131,7 @@ class Graph():
         
         return res    
 
-def find_max_density(data):
+def find_max_density(G):
     '''
         Find maximum density
         Analyses the graph to calculate its max density
@@ -138,20 +141,10 @@ def find_max_density(data):
             
 
         Complexity analysis
-            build graph:                 O ( V + E )
             find max density:            O ( V + E )
 
         So it has linear complexity
     '''
-    print("\tBuilding the graph...")
-    start = time.time()
-    G = Graph(data)
-    end = time.time()
-    print("\tGraph building time:", end-start,'\n')
-    print("\tProcessed graph size:","\n\t\tV:",G.n_nodes,"\n\t\tE:",G.n_edges)
-    print("\t\tV+E:",G.n_nodes + G.n_edges)
-
-
     print("\tFinding max density")
     max_den = 0
     start = time.time()
@@ -177,7 +170,7 @@ def find_max_density(data):
     return max_den
 
 
-def densest_subgraph(data, max_den=0):
+def densest_subgraph(path, max_den=0):
     '''
         Densest Subgraph Algorithm
         Essentially has two parts:
@@ -191,7 +184,7 @@ def densest_subgraph(data, max_den=0):
     '''
     print("\tRebuilding graph...")
     start = time.time()
-    G = Graph(data)
+    G = Graph(path)
     end = time.time()
     print("\tGraph building time:", end-start,'\n')
 
@@ -232,8 +225,7 @@ if __name__ == "__main__":
     try:
         opt = sys.argv[1]
     except IndexError:
-        opt = 'example'
-        # raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
+        raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
 
 
     try:
@@ -248,34 +240,24 @@ if __name__ == "__main__":
         print(f"FILE: {f}")
         path = os.path.join(project_path, f)
 
-        # reading complexity: O( number of lines ) (number of lines = E)
-        print("Reading file...")
+        print("Building the graph...")
         start = time.time()
-
-        with open(path) as f:
-            csvfile = csv.reader(f, delimiter=sep)
-            data = defaultdict(list)
-            for n, t in csvfile:
-                data[n].append(t)
-                data[t].append(n)
-
+        G = Graph(path)
         end = time.time()
-        orig_V = len(data)
-        orig_E = int(sum(map(len, data.values()))/2)
         print("Elapsed time:", end-start,'\n')
-        print("Dataset size:","\n\tV:", orig_V,"\n\tE:", orig_E, )
-        print("\tV + E:", orig_V + orig_E)
+        print("Dataset size:","\n\tV:", G.n_nodes,"\n\tE:", G.n_edges, )
+        print("\tV + E:", G.n_nodes + G.n_edges)
         print()
-        
+
         print("Looking for the maximum density...")
         start = time.time()
-        max_density = find_max_density(data)
+        max_density = find_max_density(G)
         end = time.time()
         print("Max density elapsed time:", end - start,'\n')
 
         print("Running densest subgraph algorithm...")
         start = time.time()
-        H = densest_subgraph(data, max_density)
+        H = densest_subgraph(path, max_density)
         end = time.time()
         print("Total algorithm elapsed time:", end - start,'\n')
 
