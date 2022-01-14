@@ -32,15 +32,16 @@ class Graph():
             density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
                 e.g.    2 edges and 3 nodes => density = 2/3
     '''
-    edges = defaultdict(set)
-    nodes = defaultdict(int)
-    degrees = defaultdict(set)
+    def __init__(self, filepath = '', sep = ''):
+        self.edges = defaultdict(set)
+        self.nodes = defaultdict(int)
+        self.degrees = defaultdict(set)
 
-    n_edges = 0
-    n_nodes = 0
-    density = float(0)
-    
-    def __init__(self, filepath = ''):
+        self.n_edges = 0
+        self.n_nodes = 0
+        self.density = float(0)
+        self.min_deg = 0
+        
         # We're transforming the graph into a simple graph
         with open(filepath) as f:
             csvfile = csv.reader(f, delimiter=sep)
@@ -56,6 +57,8 @@ class Graph():
             self.degrees[d].add(node)
             self.nodes[node] = d
 
+        self.min_deg = min(self.degrees)
+        
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
         
@@ -64,12 +67,12 @@ class Graph():
 
         self.__update_avg_degree_density()
 
-    def minimum_degree(self):
+    def __update_minimum_degree(self):
         '''
             Returns the smallest entry in self.degrees
         '''
-        ### TODO: is it REALLY O(1) ?
-        return min(self.degrees)
+        if self.min_deg not in self.degrees:
+            self.min_deg = min(self.degrees)
 
     def remove_node(self, v):
         '''
@@ -88,14 +91,22 @@ class Graph():
             degree_n = self.nodes[n]
             self.degrees[ degree_n ].remove( n )        # O(1) with a set
             
+            if degree_n - 1 > 0:
+                self.degrees[ degree_n - 1 ].add( n )      # O(1) with a set
+            
             # Removing the entry for this specific degree in case it's now empty
             if not self.degrees[ degree_n ]:
                 del self.degrees[ degree_n ]            # O(1) with a dict
+
+            if not self.edges[ n ]:
+                del self.edges[ n ]            # O(1) with a dict
             
             # And updating the overall data
             self.nodes[n] -= 1
             self.n_edges  -= 1
-            self.degrees[ self.nodes[n] ].add( n )      # O(1) with a set
+
+            if self.nodes[n] == 0: del self.nodes[n]
+            if 0 < degree_n - 1 < self.min_deg: self.min_deg = self.nodes[n]
         
         # Removing the node v from the graph
         self.n_nodes -= 1
@@ -118,7 +129,7 @@ class Graph():
         res = \
             f"\nnumber of nodes: {self.n_nodes}\n" +\
             f"number of edges: { self.n_edges } \n" +\
-            f"density: {self.density}"
+            f"density: {self.density}\n"
             # f"nodes: {' '.join(self.edges.keys())}\n" +\
             #   f"edges: {self.edges}\n"
 
@@ -146,11 +157,13 @@ class Graph():
         # repeat while G isn't empty
         while self.edges:
             # find v in G with minimum degree d_G
-            min_deg = self.minimum_degree()
-            min_nodes = self.degrees[min_deg]
+            self.__update_minimum_degree()
+            min_nodes = self.degrees[ self.min_deg ]
             v = min_nodes.pop()
-            
-            if not self.degrees[min_deg]:   del self.degrees[ min_deg ]
+
+            if not self.degrees[self.min_deg]:   
+                del self.degrees[ self.min_deg ]
+                self.__update_minimum_degree()
             
             self.remove_node(v) # remove v and its edges from G
             to_remove.append(v)
@@ -162,8 +175,76 @@ class Graph():
 
         return densest_to_remove
 
+def main():
+    global files
+
+    try:
+        opt = sys.argv[1]
+    except IndexError:
+        raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
+
+    try:
+        files = [files[opt]]
+    except KeyError:
+        raise Exception(f"{opt} not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
+
+
+    project_path = os.getcwd()
+
+    repeat = 1
+    nodes = []
+    edges = []
+    build_time = []
+    algo_time = []
+    rebuild_time = []
+    for t in range(repeat):
+        for f, sep in files:
+            print(f"FILE: {f}")
+            path = os.path.join(project_path, f)
+
+            # print("Building the graph...")
+            start = time.time()
+            G = Graph(path, sep)
+            end = time.time()
+            # print("Elapsed time:", end-start,'\n')
+            build_time.append(end-start)
+            print("Dataset size:","\n\tV:", G.n_nodes,"\n\tE:", G.n_edges, )
+            print("\tV + E:", G.n_nodes + G.n_edges)
+            # print()
+
+            # print("Looking for the maximum density subgraph...")
+            start = time.time()
+            to_remove = G.densest_subgraph()
+            end = time.time()
+            # print("Algorithm elapsed time:", end - start,'\n')
+            algo_time.append(end-start)
+
+
+            # print("Rebuild graph and removing the nodes that were removed during the algorithm...")
+            start = time.time()
+            G = Graph(path, sep)
+            for n in to_remove:
+                G.remove_node(n)
+            end = time.time()
+            # print("Total rebuild time:", end - start,'\n')
+            rebuild_time.append(end-start)
+
+            nodes.append(G.n_nodes)
+            edges.append(G.n_edges)
+
+            if t < repeat - 1 : del G
+
+    print(f"Avg build time for {repeat} times:", sum(build_time)/repeat)
+    print(f"Avg algorithm time for {repeat} times:", sum(algo_time)/repeat)
+    print(f"Avg rebuild time for {repeat} times:", sum(rebuild_time)/repeat)
+
+    print(G)
+
+    print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
+
 
 if __name__ == "__main__":
+    global files
     files = {
             'example': ('data/k-cores-example.csv', ','),
             'twitch': ('data/twitch.csv', ','),
@@ -178,48 +259,4 @@ if __name__ == "__main__":
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
-    try:
-        opt = sys.argv[1]
-    except IndexError:
-        raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
-
-
-    try:
-        files = [files[opt]]
-    except KeyError:
-        raise Exception(f"{opt} not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
-
-
-    project_path = os.getcwd()
-
-    for f, sep in files:
-        print(f"FILE: {f}")
-        path = os.path.join(project_path, f)
-
-        print("Building the graph...")
-        start = time.time()
-        G = Graph(path)
-        end = time.time()
-        print("Elapsed time:", end-start,'\n')
-        print("Dataset size:","\n\tV:", G.n_nodes,"\n\tE:", G.n_edges, )
-        print("\tV + E:", G.n_nodes + G.n_edges)
-        print()
-
-        print("Looking for the maximum density subgraph...")
-        start = time.time()
-        to_remove = G.densest_subgraph()
-        end = time.time()
-        print("Algorithm elapsed time:", end - start,'\n')
-
-
-        print("Rebuild graph and removing the nodes that were removed during the algorithm...")
-        start = time.time()
-        G = Graph(path)
-        for n in to_remove:
-            G.remove_node(n)
-        end = time.time()
-        print("Total rebuild time:", end - start,'\n')
-
-        print(G)
-
-        print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
+    main()
