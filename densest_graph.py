@@ -67,13 +67,6 @@ class Graph():
 
         self.__update_avg_degree_density()
 
-    def __update_minimum_degree(self):
-        '''
-            Returns the smallest entry in self.degrees
-        '''
-        if self.min_deg not in self.degrees:
-            self.min_deg = min(self.degrees)
-
     def remove_node(self, v):
         '''
             Removes a node v from the graph, i.e. the node itself and its edges
@@ -114,6 +107,14 @@ class Graph():
         del self.nodes[v]                               # O(1) with a dict
 
         self.__update_avg_degree_density()
+
+
+    def __update_minimum_degree(self):
+        '''
+            Returns the smallest entry in self.degrees
+        '''
+        if self.min_deg not in self.degrees:
+            self.min_deg = min(self.degrees)
 
 
     def __update_avg_degree_density(self):
@@ -178,15 +179,13 @@ class Graph():
 def main():
     global files
 
+    opts = sys.argv[1:]
+    # if not opts: opts = ['example'] # default arg for debugging
+    
     try:
-        opt = sys.argv[1]
-    except IndexError:
-        raise Exception(f"You need to specify the file! Options: {', '.join(files.keys())}")
-
-    try:
-        files = [files[opt]]
+        files = [files[opt] for opt in opts]
     except KeyError:
-        raise Exception(f"{opt} not found! Did you remember to extract data.rar? Remember the available options are: {', '.join(files.keys())}")
+        raise Exception(f"One of the requested files was not found! The available options are: {', '.join(files.keys())}")
 
 
     project_path = os.getcwd()
@@ -234,9 +233,9 @@ def main():
 
             if t < repeat - 1 : del G
 
-    print(f"Avg build time for {repeat} times:", sum(build_time)/repeat)
-    print(f"Avg algorithm time for {repeat} times:", sum(algo_time)/repeat)
-    print(f"Avg rebuild time for {repeat} times:", sum(rebuild_time)/repeat)
+    print(f"Avg build time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(build_time)/repeat)
+    print(f"Avg algorithm time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(algo_time)/repeat)
+    print(f"Avg rebuild time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(rebuild_time)/repeat)
 
     print(G)
 
