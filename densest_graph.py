@@ -4,6 +4,7 @@ import os, sys
 import time
 from collections import defaultdict
 
+### TODO: update documentation
 class Graph():
     '''
         Graph object
@@ -40,7 +41,7 @@ class Graph():
         self.n_edges = 0
         self.n_nodes = 0
         self.density = float(0)
-        self.min_deg = 0
+        self.min_deg = -1
         
         # We're transforming the graph into a simple graph
         with open(filepath) as f:
@@ -57,8 +58,9 @@ class Graph():
             self.degrees[d].add(node)
             self.nodes[node] = d
 
-        self.min_deg = min(self.degrees)
-        
+            if d < self.min_deg or self.min_deg == -1:
+                self.min_deg = d
+
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
         
@@ -162,9 +164,7 @@ class Graph():
             min_nodes = self.degrees[ self.min_deg ]
             v = min_nodes.pop()
 
-            if not self.degrees[self.min_deg]:   
-                del self.degrees[ self.min_deg ]
-                self.__update_minimum_degree()
+            if not self.degrees[self.min_deg]:  del self.degrees[ self.min_deg ]
             
             self.remove_node(v) # remove v and its edges from G
             to_remove.append(v)
@@ -219,6 +219,7 @@ def main():
             algo_time.append(end-start)
 
 
+            ### TODO: this part is really slow, optimise it
             # print("Rebuild graph and removing the nodes that were removed during the algorithm...")
             start = time.time()
             G = Graph(path, sep)
