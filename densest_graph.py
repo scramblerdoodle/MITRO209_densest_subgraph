@@ -239,7 +239,9 @@ def main():
 
     print(G)
 
-    print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object H")
+    print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object G")
+
+    return G
 
 
 if __name__ == "__main__":
@@ -258,4 +260,4 @@ if __name__ == "__main__":
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
-    main()
+    G = main()
