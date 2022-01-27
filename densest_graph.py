@@ -4,17 +4,18 @@ import os, sys
 import time
 from collections import defaultdict
 
-### TODO: update documentation
 class Graph():
     '''
         Graph object
         inputs:
-            data: json-like dict representing the nodes and edges
-        
-        Let's take the following simple graph as an example:
+            filepath:           path to .csv/.txt/.tsv representing the edges
+            sep:                separator between values in said file
+            nodes_to_remove:    used when rebuilding the graph, so as to not insert a node which is meant to be removed in the final densest solution
+
+        Let's take the following simple graph as an example to explain the attributes:
                             (A) - (B) - (C)
 
-            edges: (dict of sets) contains every node and its edges, it's also the expected input
+            edges: (dict of sets) contains every node and its edges
                 e.g.    {A: {B}, B:{A,C}, C:{B}}
 
             degrees: (dict of sets) for every degree d in the graph has a set containing the ids of every node with such degree
@@ -32,11 +33,18 @@ class Graph():
 
             density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
                 e.g.    2 edges and 3 nodes => density = 2/3
+
+            min_deg: (int) keeps track of what's the current minimum degree, avoiding re-calculating this at every iteration of the algorithm
+                e.g.    min_deg = 1 becase deg(A) = deg(C) = 1 < deg(B) = 2
+    
+    A priori the building phase should be O(E + V), as it:
+        1) loops once over all edges to build the self.edges attribute, only running O(1) functions therein
+        2) then loops once over all nodes to build the rest of the attributes, also only running O(1) functions (yes, len() is O(1)) 
     '''
     def __init__(self, filepath = '', sep = '', nodes_to_remove = set()):
         self.edges = defaultdict(set)
-        self.nodes = defaultdict(int)
         self.degrees = defaultdict(set)
+        self.nodes = defaultdict(int)
 
         self.n_edges = 0
         self.n_nodes = 0
@@ -49,20 +57,22 @@ class Graph():
             for n, t in csvfile:
                 if n != t: # Ignore self-loops
                     # To simplify the "rebuilding the graph" part of the code
-                    if n not in nodes_to_remove and t not in nodes_to_remove:
-                        # Add each edge once (using sets) but make it bi-directional (by adding it both to the origin and the target)
-                        self.edges[n].add(t)
-                        self.edges[t].add(n)
+                    if n not in nodes_to_remove and t not in nodes_to_remove:       # O(1) because it's a set
+                        # Add each edge once but make it bi-directional (by adding it both to the origin and the target)
+                        self.edges[n].add(t)        # O(1) because it's a set
+                        self.edges[t].add(n)        # O(1) because it's a set
 
+        # Defining the other attributes by looping over all nodes
         for node, edges in self.edges.items():
-            d = len(edges)
+            d = len(edges)  # degree of this particular node
 
-            self.degrees[d].add(node)
-            self.nodes[node] = d
+            self.degrees[d].add(node)   # adding this node to the `degrees` dict
+            self.nodes[node] = d    # adding its degree to the `nodes` dict     
 
-            self.n_nodes += 1
-            self.n_edges += d
+            self.n_nodes += 1   # +1 node to total
+            self.n_edges += d   # +d edges to total
 
+            # Computing min_deg while we build the initial Graph
             if d < self.min_deg or self.min_deg == -1:
                 self.min_deg = d
 
@@ -70,6 +80,7 @@ class Graph():
         #       we must divide n_edges by 2 to take that into account
         self.n_edges = int(self.n_edges/2)
 
+        # And, lastly, computing the initial density
         self.__update_avg_degree_density()
 
     def remove_node(self, v):
@@ -77,46 +88,57 @@ class Graph():
             Removes a node v from the graph, i.e. the node itself and its edges
             by updating the edges, degrees and nodes to reflect on such changes
 
+            Input:
+                v (str): node to be removed from the Graph
+
             NOTE: Complexity is O(e_v), where e_v is the number of edges for the node v
                     by looping over every node we essentially get O(E)
         '''
 
-        # For each node connected to v, we remove it from their edges
-        for n in self.edges[v]:
-            self.edges[n].remove( v )                   # O(1) with a set
+        # For each target node t connected to v, we remove v from their edges
+        for t in self.edges[v]:
+            self.edges[t].remove( v )                   # O(1) with a set
 
             # Updating their position on the degrees list
-            degree_n = self.nodes[n]
-            self.degrees[ degree_n ].remove( n )        # O(1) with a set
-            
-            if degree_n - 1 > 0:
-                self.degrees[ degree_n - 1 ].add( n )      # O(1) with a set
-            
-            # Removing the entry for this specific degree in case it's now empty
-            if not self.degrees[ degree_n ]:
-                del self.degrees[ degree_n ]            # O(1) with a dict
+            degree_t = self.nodes[t]
+            self.degrees[ degree_t ].remove( t )        # O(1) with a set
 
-            if not self.edges[ n ]:
-                del self.edges[ n ]            # O(1) with a dict
+            # If t's new degree is non-zero, place it accordingly in the `degrees` dict            
+            if degree_t - 1 > 0:
+                self.degrees[ degree_t - 1 ].add( t )      # O(1) with a set
+
+                # And update min_deg in case t now has a smaller degree than the previous min_deg
+                if degree_t - 1 < self.min_deg: 
+                    self.min_deg = degree_t - 1
             
-            # And updating the overall data
-            self.nodes[n] -= 1
+            # Updating total number of edges and t's degree
             self.n_edges  -= 1
+            self.nodes[t] -= 1
 
-            if self.nodes[n] == 0: del self.nodes[n]
-            if 0 < degree_n - 1 < self.min_deg: self.min_deg = self.nodes[n]
+            # Removing the entry for this specific degree in case it's now empty
+            if not self.degrees[ degree_t ]:
+                del self.degrees[ degree_t ]            # O(1) with a dict
+
+            # Removing t from the graph in case it has no more edges, and also -1 to total number of nodes
+            if not self.edges[ t ]: 
+                del self.edges[ t ]             # O(1) with a dict
+                del self.nodes[ t ]             # O(1) with a dict
+                self.n_nodes -= 1
         
         # Removing the node v from the graph
         self.n_nodes -= 1
         del self.edges[v]                               # O(1) with a dict
         del self.nodes[v]                               # O(1) with a dict
 
+        # And, finally, saving the new density
         self.__update_avg_degree_density()
 
 
     def __update_minimum_degree(self):
         '''
-            Returns the smallest entry in self.degrees
+            Updates the smallest degree in self.degrees if degrees[min_deg] is now empty 
+            (i.e. if there are no longer any nodes with the previous minimum degree)
+            otherwise, doesn't change anything
         '''
         if self.min_deg not in self.degrees:
             self.min_deg = min(self.degrees)
@@ -128,10 +150,13 @@ class Graph():
             where average degree density = (number of edges) / (number of nodes)
             and updates it to the density attribute
         '''
-        self.density = self.n_edges / self.n_nodes if self.n_nodes else 0 # sanity check
+        self.density = self.n_edges / self.n_nodes if self.n_nodes else 0 # sanity check for the case n_nodes = 0, which happens in the final iteration
 
 
     def __str__(self):
+        '''
+            Prints the Graph in an insightful manner
+        '''
         res = \
             f"\nnumber of nodes: {self.n_nodes}\n" +\
             f"number of edges: { self.n_edges } \n" +\
@@ -145,20 +170,27 @@ class Graph():
     def densest_subgraph(self):
         '''
             Find maximum density
-            Analyses the graph to calculate its max density
-            
-            Essentially has the same goal as the densest subgraph algorithm,
-            but helps in the complexity by breaking it into two different parts
-                
+            Analyses the graph to find its maximum density subgraph,
+            and returns which nodes we need to remove to achieve it,
+            which we then use to rebuild the maximum density subgraph.
 
-            Complexity analysis
-                find max density:            O ( V + E )
+            Overview:
+                Has one major loop over all nodes in G (while G has edges == while G has non-empty nodes),
+                in said loop we:
+                    1) Update the min_deg, which in most cases will be O(1)
+                    2) Get some node v with minimum degree
+                    3) Remove the node v and its edges (O(e_v), where e_v is the number of edges in v)
+                    4) Save that node v in a temporary list `to_remove`
+                    5) If new density > previous max density:
+                        i) Save new max density
+                        ii) Add the `to_remove` nodes to the overall set of nodes to remove
+                        iii) Reset the `to_remove` list
 
-            So it has linear complexity
+            Thus, the complexity is somewhere between O(E) and O(E*log(V)), depending on the update_minimum
         '''
-        max_den = 0
-        to_remove = set()
-        densest_to_remove = set()
+        max_den = self.density
+        to_remove = list()
+        densest_to_remove = list()
         
         # repeat while G isn't empty
         while self.edges:
@@ -170,12 +202,12 @@ class Graph():
             if not self.degrees[self.min_deg]:  del self.degrees[ self.min_deg ]
             
             self.remove_node(v) # remove v and its edges from G
-            to_remove.add(v)
+            to_remove.append(v)
 
             if self.density > max_den:
                 max_den = self.density
-                densest_to_remove.update(to_remove)
-                to_remove = set()
+                densest_to_remove.extend(to_remove)
+                to_remove = list()
 
         return densest_to_remove
 
@@ -224,11 +256,9 @@ def main():
             # print("Algorithm elapsed time:", end - start,'\n')
             algo_time.append(end-start)
 
-
-            ### TODO: this part is really slow, optimise it
             # print("Rebuild graph and removing the nodes that were removed during the algorithm...")
             start = time.time()
-            G = Graph(path, sep, to_remove)
+            G = Graph(path, sep, set(to_remove))
             end = time.time()
             # print("Total rebuild time:", end - start,'\n')
             rebuild_time.append(end-start)
