@@ -33,7 +33,7 @@ class Graph():
             density: (float) represents the average degree density of the graph, i.e. (number of edges) / (number of nodes)
                 e.g.    2 edges and 3 nodes => density = 2/3
     '''
-    def __init__(self, filepath = '', sep = ''):
+    def __init__(self, filepath = '', sep = '', nodes_to_remove = set()):
         self.edges = defaultdict(set)
         self.nodes = defaultdict(int)
         self.degrees = defaultdict(set)
@@ -47,25 +47,28 @@ class Graph():
         with open(filepath) as f:
             csvfile = csv.reader(f, delimiter=sep)
             for n, t in csvfile:
-                # Ignore self-loops
-                if n != t:
-                    # Add each edge once (using sets) but make it bi-directional (by adding it both to the origin and the target)
-                    self.edges[n].add(t)
-                    self.edges[t].add(n)
+                if n != t: # Ignore self-loops
+                    # To simplify the "rebuilding the graph" part of the code
+                    if n not in nodes_to_remove and t not in nodes_to_remove:
+                        # Add each edge once (using sets) but make it bi-directional (by adding it both to the origin and the target)
+                        self.edges[n].add(t)
+                        self.edges[t].add(n)
 
         for node, edges in self.edges.items():
             d = len(edges)
+
             self.degrees[d].add(node)
             self.nodes[node] = d
+
+            self.n_nodes += 1
+            self.n_edges += d
 
             if d < self.min_deg or self.min_deg == -1:
                 self.min_deg = d
 
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
-        
-        self.n_nodes = len( self.nodes )
-        self.n_edges = int( sum( map( len, self.edges.values() ) ) / 2 )
+        self.n_edges = int(self.n_edges/2)
 
         self.__update_avg_degree_density()
 
@@ -154,8 +157,8 @@ class Graph():
             So it has linear complexity
         '''
         max_den = 0
-        to_remove = []
-        densest_to_remove = []
+        to_remove = set()
+        densest_to_remove = set()
         
         # repeat while G isn't empty
         while self.edges:
@@ -167,12 +170,12 @@ class Graph():
             if not self.degrees[self.min_deg]:  del self.degrees[ self.min_deg ]
             
             self.remove_node(v) # remove v and its edges from G
-            to_remove.append(v)
+            to_remove.add(v)
 
             if self.density > max_den:
                 max_den = self.density
-                densest_to_remove += to_remove
-                to_remove = []
+                densest_to_remove.update(to_remove)
+                to_remove = set()
 
         return densest_to_remove
 
@@ -183,21 +186,24 @@ def main():
     # if not opts: opts = ['example'] # default arg for debugging
     
     try:
-        files = [files[opt] for opt in opts]
+        if 'all' in opts:
+            files = files.values()
+        else:
+            files = [files[opt] for opt in opts]
     except KeyError:
-        raise Exception(f"One of the requested files was not found! The available options are: {', '.join(files.keys())}")
+        raise Exception(f"One of the requested files was not found! The available options are: all, {', '.join(files.keys())}")
 
 
     project_path = os.getcwd()
 
     repeat = 1
-    nodes = []
-    edges = []
-    build_time = []
-    algo_time = []
-    rebuild_time = []
-    for t in range(repeat):
-        for f, sep in files:
+    for f, sep in files:
+        nodes = []
+        edges = []
+        build_time = []
+        algo_time = []
+        rebuild_time = []
+        for t in range(repeat):
             print(f"FILE: {f}")
             path = os.path.join(project_path, f)
 
@@ -222,9 +228,7 @@ def main():
             ### TODO: this part is really slow, optimise it
             # print("Rebuild graph and removing the nodes that were removed during the algorithm...")
             start = time.time()
-            G = Graph(path, sep)
-            for n in to_remove:
-                G.remove_node(n)
+            G = Graph(path, sep, to_remove)
             end = time.time()
             # print("Total rebuild time:", end - start,'\n')
             rebuild_time.append(end-start)
@@ -234,13 +238,13 @@ def main():
 
             if t < repeat - 1 : del G
 
-    print(f"Avg build time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(build_time)/repeat)
-    print(f"Avg algorithm time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(algo_time)/repeat)
-    print(f"Avg rebuild time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(rebuild_time)/repeat)
+        print(f"Avg build time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(build_time)/repeat)
+        print(f"Avg algorithm time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(algo_time)/repeat)
+        print(f"Avg rebuild time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(rebuild_time)/repeat)
 
-    print(G)
+        print(G)
 
-    print("\nRun in interactive mode (python3 -i) to look in-depth at the resulting graph object G")
+    print("\nRun in interactive mode (python3 -i) to look in-depth at the last resulting graph object G")
 
     return G
 
@@ -252,13 +256,18 @@ if __name__ == "__main__":
             'twitch': ('data/twitch.csv', ','),
             'facebook': ('data/facebook.txt', ' '),
             'wiki': ('data/wikispeedia.tsv', ','),
+            'git': ('data/musae_git_edges.csv', ','),
             'deezer': ('data/HR_edges.csv', ','),
             'fb-artist': ('data/artist_edges.csv', ','),
             'dblp':('data/com-dblp.ungraph.txt','\t'),
             'twitter':('data/twitter_combined.txt', ' '),
             'youtube': ('data/com-youtube.ungraph.txt','\t'),
+            'google': ('data/web-Google.txt', '\t'),
+            'twitch-gamers': ('data/large_twitch_edges.csv', ','),
             'california': ('data/roadNet-CA.txt', '\t'),
+            'berkstan':('data/web-BerkStan.txt', '\t'),
             'internet': ('data/internet_topology.csv', '\t'),
+            'gplus': ('data/gplus_combined.txt', ' '),
     }
 
     G = main()
