@@ -212,12 +212,14 @@ if __name__ == "__main__":
             'twitch': ('data/twitch.csv', ','),
             'facebook': ('data/facebook.txt', ' '),
             'wiki': ('data/wikispeedia.tsv', ','),
+            'git': ('data/musae_git_edges.csv', ','),
             'deezer': ('data/HR_edges.csv', ','),
-            'california': ('data/roadNet-CA.txt', '\t'),
             'fb-artist': ('data/artist_edges.csv', ','),
             'dblp':('data/com-dblp.ungraph.txt','\t'),
             'twitter':('data/twitter_combined.txt', ' '),
             'youtube': ('data/com-youtube.ungraph.txt','\t'),
+            'google': ('data/web-Google.txt', '\t'),
+            'california': ('data/roadNet-CA.txt', '\t'),
             'internet': ('data/internet_topology.csv', '\t'),
     }
 
