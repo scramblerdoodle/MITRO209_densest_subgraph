@@ -219,22 +219,24 @@ def main():
     
     try:
         if 'all' in opts:
-            files = files.values()
+            files = files
         else:
-            files = [files[opt] for opt in opts]
+            files = {opt: files[opt] for opt in opts}
     except KeyError:
         raise Exception(f"One of the requested files was not found! The available options are: all, {', '.join(files.keys())}")
 
 
     project_path = os.getcwd()
+    result_G, result_build, result_algo, result_rebuild = {}, {}, {}, {}
 
     repeat = 1
-    for f, sep in files:
-        nodes = []
-        edges = []
-        build_time = []
-        algo_time = []
-        rebuild_time = []
+    for name, file in files.items():
+        f = file[0]
+        sep = file[1]
+
+        nodes, edges, densities = [], [], []
+        build_time, algo_time, rebuild_time = [], [], []
+
         for t in range(repeat):
             print(f"FILE: {f}")
             path = os.path.join(project_path, f)
@@ -265,6 +267,7 @@ def main():
 
             nodes.append(G.n_nodes)
             edges.append(G.n_edges)
+            densities.append(G.density)
 
             if t < repeat - 1 : del G
 
@@ -273,10 +276,14 @@ def main():
         print(f"Avg rebuild time for {repeat} loop{'s' if repeat > 1 else ''}:", sum(rebuild_time)/repeat)
 
         print(G)
+        result_G[name] = {'n_nodes': sum(nodes)/repeat, 'n_edges': sum(edges)/repeat, 'density': sum(densities)/repeat}
+        result_build[name] = sum(build_time)/repeat
+        result_algo[name] = sum(algo_time)/repeat
+        result_rebuild[name] = sum(rebuild_time)/repeat
 
-    print("\nRun in interactive mode (python3 -i) to look in-depth at the last resulting graph object G")
+    print("\nRun in interactive mode (python3 -i) to look in-depth at the last resulting graph object G and to save the results using the save_to_file function")
 
-    return G
+    return G, result_G, result_build, result_algo, result_rebuild
 
 
 if __name__ == "__main__":
@@ -300,4 +307,17 @@ if __name__ == "__main__":
             'gplus': ('data/gplus_combined.txt', ' '),
     }
 
-    G = main()
+    G, result_G, result_build, result_algo, result_rebuild = main()
+
+
+def save_to_file(path, dict_G, build_times, algo_times, rebuild_times):
+    header = \
+        "| SOURCE | SAMPLE # NODES | SAMPLE # EDGES | # NODES IN FINAL SOL | # EDGES IN FINAL SOL | MAX DENSITY | GRAPH BUILDING | ALGORITHM TIME | REBUILD TIME |\n" +\
+        "|-|-|-|-|-|-|-|-|-|\n"
+    with open(path, mode='w') as f:
+        f.write(header)
+        for name, graph in dict_G.items():
+            line = f"| {name} | ... | ... " +\
+                f"| {graph['n_nodes']} | {graph['n_edges']} | {graph['density']} " +\
+                f"| {build_times[name]} | {algo_times[name]} | {rebuild_times[name]} |\n"
+            f.write(line)
