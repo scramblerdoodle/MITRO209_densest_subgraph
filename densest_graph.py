@@ -94,9 +94,8 @@ class Graph():
             NOTE: Complexity is O(e_v), where e_v is the number of edges for the node v
                     by looping over every node we essentially get O(E)
         '''
-
-        # For each target node t connected to v, we remove v from their edges
         for t in self.edges[v]:
+            # For each target node t connected to v, we remove v from their edges
             self.edges[t].remove( v )                   # O(1) with a set
 
             # Updating their position on the degrees list
