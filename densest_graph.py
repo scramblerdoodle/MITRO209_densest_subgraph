@@ -48,7 +48,7 @@ class Graph:
         self.n_edges = 0
         self.n_nodes = 0
         self.density = float(0)
-        self.min_deg = -1
+        self.min_deg = float('inf')
         
         # We're transforming the graph into a simple graph
         with open(filepath) as f:
@@ -72,12 +72,12 @@ class Graph:
             self.n_edges += d   # +d edges to total
 
             # Computing min_deg while we build the initial Graph
-            if d < self.min_deg or self.min_deg == -1:
+            if d < self.min_deg:
                 self.min_deg = d
 
         # NOTE: since we're building an undirected graph and duplicating every edge,
         #       we must divide n_edges by 2 to take that into account
-        self.n_edges = int(self.n_edges/2)
+        self.n_edges = self.n_edges//2
 
         # And, lastly, computing the initial density
         self.__update_avg_degree_density()
@@ -97,7 +97,7 @@ class Graph:
             # For each target node t connected to v, we remove v from their edges
             self.edges[t].remove( v )                   # O(1) with a set
 
-            # Updating their position on the degrees list
+            # Updating their position on the degrees dict
             degree_t = self.nodes[t]
             self.degrees[ degree_t ].remove( t )        # O(1) with a set
 
@@ -120,7 +120,7 @@ class Graph:
                 self.n_nodes -= 1
             
 
-            # Removing the entry for this specific degree in case it's now empty
+            # Removing the entry for t's old  degree in case it's now empty
             if not self.degrees[ degree_t ]:
                 del self.degrees[ degree_t ]            # O(1) with a dict
         
@@ -139,6 +139,7 @@ class Graph:
             (i.e. if there are no longer any nodes with the previous minimum degree)
             otherwise, doesn't change anything
         '''
+        # If there are no longer nodes with the current min_deg, look for the new min_deg in the graph
         if self.min_deg not in self.degrees:
             self.min_deg = min(self.degrees)
 
