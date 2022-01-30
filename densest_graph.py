@@ -1,4 +1,3 @@
-## GOAL: O(E + V)
 import csv
 import os, sys
 import time
