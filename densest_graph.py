@@ -3,8 +3,7 @@ import csv
 import os, sys
 import time
 from collections import defaultdict
-
-class Graph():
+class Graph:
     '''
         Graph object
         inputs:
@@ -102,6 +101,10 @@ class Graph():
             degree_t = self.nodes[t]
             self.degrees[ degree_t ].remove( t )        # O(1) with a set
 
+            # Updating total number of edges and t's degree
+            self.n_edges  -= 1
+            self.nodes[t] -= 1
+
             # If t's new degree is non-zero, place it accordingly in the `degrees` dict            
             if degree_t - 1 > 0:
                 self.degrees[ degree_t - 1 ].add( t )      # O(1) with a set
@@ -109,20 +112,17 @@ class Graph():
                 # And update min_deg in case t now has a smaller degree than the previous min_deg
                 if degree_t - 1 < self.min_deg: 
                     self.min_deg = degree_t - 1
+
+            # Removing t from the graph in case it has no more edges, and also -1 to total number of nodes
+            else: 
+                del self.edges[ t ]             # O(1) with a dict
+                del self.nodes[ t ]             # O(1) with a dict
+                self.n_nodes -= 1
             
-            # Updating total number of edges and t's degree
-            self.n_edges  -= 1
-            self.nodes[t] -= 1
 
             # Removing the entry for this specific degree in case it's now empty
             if not self.degrees[ degree_t ]:
                 del self.degrees[ degree_t ]            # O(1) with a dict
-
-            # Removing t from the graph in case it has no more edges, and also -1 to total number of nodes
-            if not self.edges[ t ]: 
-                del self.edges[ t ]             # O(1) with a dict
-                del self.nodes[ t ]             # O(1) with a dict
-                self.n_nodes -= 1
         
         # Removing the node v from the graph
         self.n_nodes -= 1
@@ -214,7 +214,7 @@ def main():
     global files
 
     opts = sys.argv[1:]
-    # if not opts: opts = ['example'] # default arg for debugging
+    if not opts: opts = ['example'] # default arg for debugging
     
     try:
         if 'all' in opts:
@@ -242,8 +242,16 @@ def main():
 
             # print("Building the graph...")
             start = time.time()
+
+            import cProfile, pstats
+            profiler = cProfile.Profile()
+            profiler.enable()
             G = Graph(path, sep)
             end = time.time()
+            profiler.disable()
+            stats = pstats.Stats(profiler).sort_stats('cumtime')
+            stats.print_stats()
+
             # print("Elapsed time:", end-start,'\n')
             build_time.append(end-start)
             print("Dataset size:","\n\tV:", G.n_nodes,"\n\tE:", G.n_edges, )
@@ -252,7 +260,15 @@ def main():
 
             # print("Looking for the maximum density subgraph...")
             start = time.time()
+
+            profiler = cProfile.Profile()
+            profiler.enable()
             to_remove = G.densest_subgraph()
+            end = time.time()
+            profiler.disable()
+            stats = pstats.Stats(profiler).sort_stats('cumtime')
+            stats.print_stats()
+
             end = time.time()
             # print("Algorithm elapsed time:", end - start,'\n')
             algo_time.append(end-start)
@@ -304,6 +320,7 @@ if __name__ == "__main__":
             'berkstan':('data/web-BerkStan.txt', '\t'),
             'internet': ('data/internet_topology.csv', '\t'),
             'gplus': ('data/gplus_combined.txt', ' '),
+            'test': ('data/test.txt', ','),
     }
 
     G, result_G, result_build, result_algo, result_rebuild = main()
