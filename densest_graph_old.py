@@ -221,6 +221,7 @@ if __name__ == "__main__":
             'google': ('data/web-Google.txt', '\t'),
             'california': ('data/roadNet-CA.txt', '\t'),
             'internet': ('data/internet_topology.csv', '\t'),
+            'gplus': ('data/gplus_combined.txt', ' '),
     }
 
     try:
